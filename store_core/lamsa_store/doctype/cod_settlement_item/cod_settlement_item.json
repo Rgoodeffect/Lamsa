@@ -1,0 +1,75 @@
+{
+ "actions": [],
+ "creation": "2026-09-26 01:52:22.109127",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "assignment",
+  "order_no",
+  "sales_invoice",
+  "customer",
+  "amount",
+  "payment_entry"
+ ],
+ "fields": [
+  {
+   "fieldname": "assignment",
+   "fieldtype": "Link",
+   "label": "Delivery Assignment",
+   "options": "Delivery Assignment",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "order_no",
+   "fieldtype": "Data",
+   "label": "Order No",
+   "read_only": 1,
+   "in_list_view": 1,
+   "fetch_from": "assignment.order_no"
+  },
+  {
+   "fieldname": "sales_invoice",
+   "fieldtype": "Link",
+   "label": "Sales Invoice",
+   "options": "Sales Invoice",
+   "read_only": 1,
+   "in_list_view": 1,
+   "fetch_from": "assignment.sales_invoice"
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer",
+   "read_only": 1,
+   "fetch_from": "assignment.customer"
+  },
+  {
+   "fieldname": "amount",
+   "fieldtype": "Currency",
+   "label": "Amount",
+   "read_only": 1,
+   "in_list_view": 1,
+   "fetch_from": "assignment.collected_amount"
+  },
+  {
+   "fieldname": "payment_entry",
+   "fieldtype": "Link",
+   "label": "Payment Entry",
+   "options": "Payment Entry",
+   "read_only": 1,
+   "no_copy": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-09-26 01:52:22.109127",
+ "modified_by": "Administrator",
+ "module": "Lamsa Store",
+ "name": "COD Settlement Item",
+ "owner": "Administrator",
+ "states": [],
+ "istable": 1,
+ "editable_grid": 1
+}

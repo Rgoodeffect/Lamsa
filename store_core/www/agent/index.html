@@ -1,0 +1,88 @@
+{% extends "templates/lamsa_agent.html" %}
+{% block content %}
+<header>
+	<h1>{{ _("My Deliveries") }}</h1>
+	<a class="muted" href="/logout">{{ _("Logout") }}</a>
+</header>
+<main>
+	{% if not agent %}
+		<p class="empty">{{ _("Your user is not linked to an active Delivery Agent.") }}</p>
+	{% else %}
+		<div class="cash">
+			<span>{{ agent.agent_name }}</span>
+			<strong>{{ _("Cash in hand") }}: {{ frappe.format(agent.cash_in_hand or 0, {"fieldtype": "Currency"}) }}</strong>
+		</div>
+
+		{% for a in assignments %}
+		<article class="card" data-name="{{ a.name }}">
+			<div class="row">
+				<strong dir="ltr">{{ a.order_no }}</strong>
+				<span class="badge {{ a.status.split(' ')[0] }}">{{ _(a.status) }}</span>
+			</div>
+			<p style="margin:8px 0 4px">{{ a.customer_name }}</p>
+			<p class="muted" style="margin:0; white-space:pre-line">{{ a.address }}</p>
+			<ul class="muted" style="padding-inline-start:18px">
+				{% for i in a["items"] %}<li>{{ i.item_name }} × {{ frappe.utils.cint(i.qty) }}</li>{% endfor %}
+			</ul>
+			{% if a.gift_wrap %}<div class="gift">🎁 {{ _("Gift wrap") }}{% if a.gift_message %}: {{ a.gift_message }}{% endif %}</div>{% endif %}
+			<div class="row" style="margin-top:10px">
+				<span class="muted">{{ _("Amount to collect") }}</span>
+				<strong>{{ frappe.format(a.expected_amount, {"fieldtype": "Currency"}) }}</strong>
+			</div>
+			<div class="actions">
+				<a class="btn ghost" href="tel:{{ a.phone }}">📞 {{ a.phone_display }}</a>
+				<a class="btn ghost" href="https://wa.me/{{ (a.phone or '').lstrip('+') }}" target="_blank" rel="noopener">WhatsApp</a>
+			</div>
+			<div class="actions">
+				{% if a.status == "Confirmed" %}
+					<button class="primary" data-action="Out for Delivery">{{ _("Picked up – out for delivery") }}</button>
+				{% else %}
+					<input type="number" inputmode="decimal" step="0.01" min="0" value="{{ a.expected_amount }}" aria-label="{{ _('Collected Amount') }}" data-collected>
+					<button class="ok" data-action="Delivered">{{ _("Delivered & cash collected") }}</button>
+					<button class="ghost" data-action="Returned">{{ _("Returned") }}</button>
+				{% endif %}
+			</div>
+		</article>
+		{% else %}
+			<p class="empty">{{ _("No deliveries assigned to you right now.") }}</p>
+		{% endfor %}
+
+		{% if delivered_today %}
+		<h2 style="font-size:1rem">{{ _("Delivered today") }}</h2>
+		{% for d in delivered_today %}
+			<div class="card row"><span dir="ltr">{{ d.order_no }}</span><span>{{ frappe.format(d.collected_amount, {"fieldtype": "Currency"}) }}</span></div>
+		{% endfor %}
+		{% endif %}
+	{% endif %}
+</main>
+<div class="toast" id="toast" role="status"></div>
+<script>
+document.addEventListener("click", async (event) => {
+	const button = event.target.closest("button[data-action]");
+	if (!button) return;
+	const card = button.closest("[data-name]");
+	const status = button.dataset.action;
+	const confirmText = {{ {"Out for Delivery": _("Start delivering this order?"), "Delivered": _("Confirm delivery and cash collected?"), "Returned": _("Mark this order as returned?")} | tojson }};
+	if (!window.confirm(confirmText[status])) return;
+	const collected = card.querySelector("[data-collected]");
+	button.disabled = true;
+	const body = new URLSearchParams({ assignment: card.dataset.name, status });
+	if (status === "Delivered" && collected) body.set("collected_amount", collected.value || "0");
+	const res = await fetch("/api/method/store_core.api.v1.agent.update_status", {
+		method: "POST",
+		headers: { "X-Frappe-CSRF-Token": window.lamsaCsrf || "", "Content-Type": "application/x-www-form-urlencoded" },
+		body,
+	});
+	const data = await res.json().catch(() => ({}));
+	const toast = document.getElementById("toast");
+	if (res.ok && data.message?.ok) {
+		location.reload();
+	} else {
+		button.disabled = false;
+		toast.textContent = data.message?.error?.message || {{ _("Could not update. Try again.") | tojson }};
+		toast.style.display = "block";
+		setTimeout(() => (toast.style.display = "none"), 4000);
+	}
+});
+</script>
+{% endblock %}

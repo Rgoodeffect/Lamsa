@@ -1,0 +1,127 @@
+@import "tailwindcss";
+
+/*
+ * Lamsa brand tokens — change the brand here, in one place.
+ * Tailwind v4 reads these from @theme, so `bg-primary-600`, `text-ink`, `font-heading`,
+ * `rounded-card` etc. are generated from the values below.
+ */
+@theme {
+  /* Dusty rose (primary) */
+  --color-primary-50: #fbf4f5;
+  --color-primary-100: #f6e6e9;
+  --color-primary-200: #ecccd2;
+  --color-primary-300: #deabb4;
+  --color-primary-400: #cd8a96;
+  --color-primary-500: #b96e7b;
+  --color-primary-600: #9e5663;
+  --color-primary-700: #80444f;
+  --color-primary-800: #60333b;
+  --color-primary-900: #402228;
+
+  /* Beige / light gold (accent) */
+  --color-accent-50: #fcf9f3;
+  --color-accent-100: #f6eedf;
+  --color-accent-200: #ecdcbe;
+  --color-accent-300: #dfc493;
+  --color-accent-400: #cfa96b;
+  --color-accent-500: #b98f4f;
+  --color-accent-600: #94703c;
+
+  /* Neutrals */
+  --color-cream: #fbf8f4; /* page background (soft off-white) */
+  --color-surface: #ffffff;
+  --color-ink: #3a2e31; /* body text */
+  --color-muted: #7d6d71;
+  --color-line: #eee4e0;
+  --color-success: #3f7d5c;
+  --color-warning: #b7791f;
+  --color-danger: #b4424f;
+
+  /* Typography (variables set by next/font in src/lib/fonts.ts) */
+  --font-heading: var(--font-lamsa-heading), "Times New Roman", serif;
+  --font-body: var(--font-lamsa-body), system-ui, sans-serif;
+
+  /* Shape */
+  --radius-card: 1.25rem;
+  --radius-pill: 999px;
+  --shadow-soft: 0 6px 24px -12px rgb(96 51 59 / 0.25);
+}
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    background: var(--color-cream);
+    color: var(--color-ink);
+    font-family: var(--font-body);
+    line-height: 1.7;
+  }
+  h1,
+  h2,
+  h3,
+  .font-heading {
+    font-family: var(--font-heading);
+    line-height: 1.35;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-primary-500);
+    outline-offset: 2px;
+  }
+}
+
+@utility container-page {
+  margin-inline: auto;
+  width: 100%;
+  max-width: 80rem;
+  padding-inline: 1rem;
+  @media (width >= 48rem) {
+    padding-inline: 1.5rem;
+  }
+}
+
+@utility btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: var(--radius-pill);
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+  transition: background-color 150ms, color 150ms, opacity 150ms;
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+}
+
+@utility btn-primary {
+  background: var(--color-primary-600);
+  color: white;
+  &:hover:not(:disabled) {
+    background: var(--color-primary-700);
+  }
+}
+
+@utility btn-outline {
+  border: 1px solid var(--color-primary-300);
+  color: var(--color-primary-700);
+  background: var(--color-surface);
+  &:hover:not(:disabled) {
+    background: var(--color-primary-50);
+  }
+}
+
+@utility field {
+  width: 100%;
+  border-radius: 0.875rem;
+  border: 1px solid var(--color-line);
+  background: var(--color-surface);
+  padding: 0.75rem 1rem;
+  font-size: 1rem; /* 16px avoids iOS zoom on focus */
+  &:focus {
+    border-color: var(--color-primary-400);
+    outline: none;
+    box-shadow: 0 0 0 3px var(--color-primary-100);
+  }
+}
