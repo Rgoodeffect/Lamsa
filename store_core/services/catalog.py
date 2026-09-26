@@ -265,13 +265,15 @@ def _load_attribute_values(attributes) -> dict:
 	rows = frappe.get_all(
 		"Item Attribute Value",
 		filters={"parent": ["in", list(attributes)], "parenttype": "Item Attribute"},
-		fields=["parent", "attribute_value", "abbr", "idx"],
+		fields=["parent", "attribute_value", "lamsa_swatch", "idx"],
 		order_by="idx asc",
 	)
 	out = defaultdict(dict)
 	for r in rows:
-		# Colour swatches: put a hex code (e.g. "#D8A7B1") in the attribute value's Abbreviation.
-		swatch = r.abbr if r.abbr and re.fullmatch(r"#[0-9a-fA-F]{3,8}", r.abbr) else None
+		# Colour swatch from Item Attribute Value.lamsa_swatch (custom Color field)
+		swatch = (
+			r.lamsa_swatch if r.lamsa_swatch and re.fullmatch(r"#[0-9a-fA-F]{3,8}", r.lamsa_swatch) else None
+		)
 		out[r.parent][r.attribute_value] = {"idx": r.idx, "swatch": swatch}
 	return dict(out)
 

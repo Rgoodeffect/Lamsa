@@ -77,8 +77,8 @@ def setup_store(stock_qty: int = 3) -> dict:
 		{
 			"attribute_name": COLOR,
 			"item_attribute_values": [
-				{"attribute_value": "وردي", "abbr": "#D8A7B1"},
-				{"attribute_value": "بيج", "abbr": "#E8D9C4"},
+				{"attribute_value": "وردي", "abbr": "PNK", "lamsa_swatch": "#D8A7B1"},
+				{"attribute_value": "بيج", "abbr": "BGE", "lamsa_swatch": "#E8D9C4"},
 			],
 		},
 	)
@@ -187,3 +187,21 @@ def _price(item_code, rate):
 				"price_list_rate": rate,
 			}
 		).insert(ignore_permissions=True)
+
+
+API_USER = "lamsa-test-api@example.com"
+
+
+def api_user() -> str:
+	"""A user with only the storefront API role, like the real storefront credentials."""
+	if not frappe.db.exists("User", API_USER):
+		frappe.get_doc(
+			{
+				"doctype": "User",
+				"email": API_USER,
+				"first_name": "Lamsa API Test",
+				"send_welcome_email": 0,
+				"roles": [{"role": "Lamsa Storefront API"}],
+			}
+		).insert(ignore_permissions=True)
+	return API_USER

@@ -23,8 +23,10 @@ TRANSITIONS: dict[str, frozenset[str]] = {
 	CANCELLED: frozenset(),
 }
 
-# Transitions a delivery agent may perform from the agent page; the rest are office-only.
-AGENT_TRANSITIONS = frozenset({(OUT_FOR_DELIVERY, DELIVERED), (OUT_FOR_DELIVERY, RETURNED)})
+# Transitions a delivery agent may perform from the agent page (/agent); the rest are office-only.
+AGENT_TRANSITIONS = frozenset(
+	{(CONFIRMED, OUT_FOR_DELIVERY), (OUT_FOR_DELIVERY, DELIVERED), (OUT_FOR_DELIVERY, RETURNED)}
+)
 
 # Customer-facing tracking steps (index used for the progress bar in the storefront).
 TRACKING_STEPS = (NEW, CONFIRMED, OUT_FOR_DELIVERY, DELIVERED)

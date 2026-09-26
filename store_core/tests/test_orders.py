@@ -17,8 +17,11 @@ class TestStoreOrders(ERPNextTestSuite):
 		self.data = t.setup_store(stock_qty=3)
 		self.pink_s = self.data["variants"][("S", "وردي")]
 		self.beige_m = self.data["variants"][("M", "بيج")]
+		# Run as the restricted storefront API user, exactly like production requests.
+		frappe.set_user(t.api_user())
 
 	def tearDown(self):
+		frappe.set_user("Administrator")
 		catalog.invalidate_index()
 		super().tearDown()
 
@@ -42,6 +45,7 @@ class TestStoreOrders(ERPNextTestSuite):
 		index = catalog.get_index()
 		dress = catalog.find_product(index, "فستان-سهرة-مطرز")
 		self.assertIsNotNone(dress)
+		self.assertTrue(all("#" not in v["code"] for v in dress["variants"]))
 		self.assertEqual(dress["min_price"], 250)
 		self.assertEqual(dress["max_price"], 300)
 		self.assertEqual(dress["sizes"], ["S", "M"])
@@ -102,6 +106,7 @@ class TestStoreOrders(ERPNextTestSuite):
 		self.assertTrue(result["order_no"].startswith("LT-"))
 		self.assertEqual(result["grand_total"], 250 + 15 + 20)
 		self.assertEqual(result["payment"]["status"], "pending")
+		self.assertEqual(frappe.session.user, t.API_USER)  # system context restored
 
 		so = frappe.get_doc("Sales Order", {"lamsa_order_no": result["order_no"]})
 		self.assertEqual(so.docstatus, 0)

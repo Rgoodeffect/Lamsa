@@ -175,6 +175,17 @@ CUSTOM_FIELDS: dict[str, list[dict]] = {
 			},
 		]
 	),
+	"Item Attribute Value": [
+		{
+			"fieldname": "lamsa_swatch",
+			"fieldtype": "Color",
+			"label": "Store Swatch",
+			"insert_after": "abbr",
+			"in_list_view": 1,
+			"columns": 1,
+			"description": "Colour dot shown on the storefront (leave the Abbreviation as a short code: it becomes part of variant item codes)",
+		},
+	],
 	"Delivery Note": _chain([_tab(), *ORDER_FIELDS]),
 	"Sales Invoice": _chain([_tab(), *ORDER_FIELDS]),
 }

@@ -10,6 +10,7 @@ The same `build_sales_order` is used for the quote and for the real order, so th
 
 import hmac
 import re
+from contextlib import contextmanager
 
 import frappe
 from frappe import _
@@ -25,6 +26,27 @@ from store_core.utils.phone import InvalidPhone, normalize_libyan_phone
 
 MAX_LINES = 30
 EVENT_ID_RE = re.compile(r"^[A-Za-z0-9_-]{8,64}$")
+
+
+@contextmanager
+def system_context():
+	"""Run ERPNext's selling logic with full permissions, then restore the caller.
+
+	ERPNext's pricing code (get_item_details) checks Item/Price List read permission for the
+	session user. The storefront API user deliberately has no desk permissions, and adding
+	Custom DocPerms would replace the standard permissions of those core DocTypes. Endpoints
+	verify the "Lamsa Storefront API" role before any call reaches this context, and inputs are
+	validated first; documents record the storefront as their source (lamsa_source).
+	"""
+	user = frappe.session.user
+	if user == "Administrator":
+		yield
+		return
+	frappe.set_user("Administrator")
+	try:
+		yield
+	finally:
+		frappe.set_user(user)
 
 
 class CheckoutError(frappe.ValidationError):
@@ -229,8 +251,9 @@ def _zone_public(zone):
 def quote(items: list[dict], zone: str | None = None, gift_wrap: bool = False) -> dict:
 	lines = validate_cart(items)
 	zone_doc = get_zone(zone)
-	so = build_sales_order(lines, zone_doc, bool(cint(gift_wrap)))
-	return summarize(so, lines, zone_doc)
+	with system_context():
+		so = build_sales_order(lines, zone_doc, bool(cint(gift_wrap)))
+		return summarize(so, lines, zone_doc)
 
 
 # ---------------------------------------------------------------------------
@@ -283,6 +306,11 @@ def validate_customer_input(data: dict) -> dict:
 
 def place_order(data: dict) -> dict:
 	clean = validate_customer_input(data)
+	with system_context():
+		return _place_order(clean, data)
+
+
+def _place_order(clean: dict, data: dict) -> dict:
 
 	# Idempotency: the storefront generates one event_id per checkout attempt (also used as the
 	# Meta Pixel/CAPI dedup id). A retried request returns the order that was already created.

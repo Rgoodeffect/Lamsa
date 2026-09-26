@@ -103,3 +103,72 @@ msgstr "يجب أن يكون الهاتف رقم جوال ليبي صحيح"
 
 msgid "Delivery Fee cannot be negative"
 msgstr "رسوم التوصيل لا يمكن أن تكون سالبة"
+
+msgid "My Deliveries"
+msgstr "توصيلاتي"
+
+msgid "Logout"
+msgstr "تسجيل الخروج"
+
+msgid "Your user is not linked to an active Delivery Agent."
+msgstr "حسابك غير مرتبط بمندوب توصيل نشط."
+
+msgid "Cash in hand"
+msgstr "النقد لديك"
+
+msgid "Gift wrap"
+msgstr "تغليف هدية"
+
+msgid "Amount to collect"
+msgstr "المبلغ المطلوب تحصيله"
+
+msgid "Picked up – out for delivery"
+msgstr "استلمت الطلب – في الطريق"
+
+msgid "Delivered & cash collected"
+msgstr "تم التسليم واستلام المبلغ"
+
+msgid "No deliveries assigned to you right now."
+msgstr "لا توجد توصيلات مسندة إليك حالياً."
+
+msgid "Delivered today"
+msgstr "تم توصيله اليوم"
+
+msgid "Start delivering this order?"
+msgstr "بدء توصيل هذا الطلب؟"
+
+msgid "Confirm delivery and cash collected?"
+msgstr "تأكيد التسليم واستلام المبلغ؟"
+
+msgid "Mark this order as returned?"
+msgstr "تسجيل هذا الطلب كمرتجع؟"
+
+msgid "Could not update. Try again."
+msgstr "تعذّر التحديث. حاول مجدداً."
+
+msgid "This delivery is not assigned to you"
+msgstr "هذا الطلب غير مسند إليك"
+
+msgid "This status change is not allowed"
+msgstr "تغيير الحالة هذا غير مسموح"
+
+msgid "Only delivery agents can open this page"
+msgstr "هذه الصفحة لمندوبي التوصيل فقط"
+
+msgid "Select a Delivery Agent before sending the order out"
+msgstr "اختر مندوب التوصيل قبل إرسال الطلب"
+
+msgid "Confirm the order first"
+msgstr "يجب تأكيد الطلب أولاً"
+
+msgid "Lamsa"
+msgstr "لمسة"
+
+msgid "Get Unsettled Orders"
+msgstr "جلب الطلبات غير المسوّاة"
+
+msgid "Set Status"
+msgstr "تغيير الحالة"
+
+msgid "Print Delivery Note"
+msgstr "طباعة إذن التسليم"
