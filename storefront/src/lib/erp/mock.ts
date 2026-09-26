@@ -407,7 +407,7 @@ export const mockApi = {
           color: s.color ?? "",
           product_type: breadcrumbs(p.group).map((b) => b.title).join(" > "),
           age_group: p.group === "Kids" ? "kids" : "adult",
-          gender: p.group === "Kids" ? "unisex" : "female",
+          gender: p.group === "Kids" ? "unisex" : "",
         });
       }
     }

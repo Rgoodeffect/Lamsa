@@ -169,3 +169,19 @@ class TestStoreOrders(ERPNextTestSuite):
 			with self.assertRaises(orders.CheckoutError) as ctx:
 				orders.track_order(result["order_no"], phone)
 			self.assertEqual(ctx.exception.code, "order_not_found")
+
+	# -- feeds -------------------------------------------------------------------
+
+	def test_meta_feed_has_one_row_per_variant(self):
+		from store_core.services.feed import feed_rows
+
+		rows = {r["id"]: r for r in feed_rows()}
+		dress_rows = [r for r in rows.values() if r["item_group_id"] == t.TEMPLATE]
+		self.assertEqual(len(dress_rows), 4)
+		self.assertEqual(rows[self.beige_m]["price"].split()[0], "300.00")
+		self.assertEqual(rows[self.beige_m]["size"], "M")
+		self.assertEqual(rows[self.beige_m]["color"], "بيج")
+		self.assertEqual(rows[self.pink_s]["availability"], "in stock")
+		self.assertEqual(rows[self.data["variants"][("S", "بيج")]]["availability"], "out of stock")
+		self.assertEqual(rows[t.SIMPLE_ITEM]["item_group_id"], t.SIMPLE_ITEM)
+		self.assertIn("فساتين", rows[self.pink_s]["product_type"])
