@@ -1,0 +1,70 @@
+{
+ "actions": [],
+ "creation": "2026-09-26 01:44:43.010756",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "size",
+  "age_label",
+  "chest",
+  "waist",
+  "hips",
+  "length",
+  "height"
+ ],
+ "fields": [
+  {
+   "fieldname": "size",
+   "fieldtype": "Data",
+   "label": "Size",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "age_label",
+   "fieldtype": "Data",
+   "label": "Age",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "chest",
+   "fieldtype": "Data",
+   "label": "Chest (cm)",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "waist",
+   "fieldtype": "Data",
+   "label": "Waist (cm)",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "hips",
+   "fieldtype": "Data",
+   "label": "Hips (cm)",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "length",
+   "fieldtype": "Data",
+   "label": "Length (cm)",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "height",
+   "fieldtype": "Data",
+   "label": "Height (cm)",
+   "in_list_view": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-09-26 01:44:43.010756",
+ "modified_by": "Administrator",
+ "module": "Lamsa Store",
+ "name": "Size Guide Row",
+ "owner": "Administrator",
+ "states": [],
+ "istable": 1,
+ "editable_grid": 1
+}

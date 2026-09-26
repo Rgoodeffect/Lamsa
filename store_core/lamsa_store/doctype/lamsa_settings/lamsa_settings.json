@@ -1,0 +1,275 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-09-26 01:44:42.938409",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "general_section",
+  "company",
+  "currency",
+  "selling_price_list",
+  "warehouse",
+  "column_break_1",
+  "customer_group",
+  "territory",
+  "order_no_prefix",
+  "max_qty_per_line",
+  "catalog_section",
+  "size_attribute",
+  "column_break_5",
+  "color_attribute",
+  "low_stock_threshold",
+  "fees_section",
+  "gift_wrap_item",
+  "gift_message_max_length",
+  "column_break_2",
+  "delivery_fee_item",
+  "cod_section",
+  "default_payment_provider",
+  "enabled_payment_providers",
+  "column_break_3",
+  "cod_cash_account",
+  "storefront_section",
+  "store_name",
+  "storefront_url",
+  "whatsapp_number",
+  "column_break_4",
+  "notification_channel",
+  "shipping_provider"
+ ],
+ "fields": [
+  {
+   "fieldname": "general_section",
+   "fieldtype": "Section Break",
+   "label": "General"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Currency",
+   "options": "Currency",
+   "fetch_from": "company.default_currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "selling_price_list",
+   "fieldtype": "Link",
+   "label": "Selling Price List",
+   "options": "Price List",
+   "reqd": 1
+  },
+  {
+   "fieldname": "warehouse",
+   "fieldtype": "Link",
+   "label": "Store Warehouse",
+   "options": "Warehouse",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "customer_group",
+   "fieldtype": "Link",
+   "label": "Customer Group",
+   "options": "Customer Group",
+   "reqd": 1
+  },
+  {
+   "fieldname": "territory",
+   "fieldtype": "Link",
+   "label": "Territory",
+   "options": "Territory",
+   "reqd": 1
+  },
+  {
+   "fieldname": "order_no_prefix",
+   "fieldtype": "Data",
+   "label": "Order No Prefix",
+   "default": "L-",
+   "reqd": 1
+  },
+  {
+   "fieldname": "max_qty_per_line",
+   "fieldtype": "Int",
+   "label": "Max Qty per Cart Line",
+   "default": "10"
+  },
+  {
+   "fieldname": "catalog_section",
+   "fieldtype": "Section Break",
+   "label": "Catalog"
+  },
+  {
+   "fieldname": "size_attribute",
+   "fieldtype": "Data",
+   "label": "Size Attribute",
+   "default": "Size",
+   "description": "Item Attribute name used for variants"
+  },
+  {
+   "fieldname": "column_break_5",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "color_attribute",
+   "fieldtype": "Data",
+   "label": "Color Attribute",
+   "default": "Color",
+   "description": "Item Attribute name used for variants"
+  },
+  {
+   "fieldname": "low_stock_threshold",
+   "fieldtype": "Int",
+   "label": "Show 'only N left' at or below",
+   "default": "3"
+  },
+  {
+   "fieldname": "fees_section",
+   "fieldtype": "Section Break",
+   "label": "Fees"
+  },
+  {
+   "fieldname": "gift_wrap_item",
+   "fieldtype": "Link",
+   "label": "Gift Wrap Service Item",
+   "options": "Item",
+   "reqd": 1,
+   "description": "Its rate in the selling price list is the gift wrap fee"
+  },
+  {
+   "fieldname": "gift_message_max_length",
+   "fieldtype": "Int",
+   "label": "Gift Message Max Length",
+   "default": "250"
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "delivery_fee_item",
+   "fieldtype": "Link",
+   "label": "Delivery Fee Service Item",
+   "options": "Item",
+   "reqd": 1,
+   "description": "Rate is taken from the customer's Delivery Zone"
+  },
+  {
+   "fieldname": "cod_section",
+   "fieldtype": "Section Break",
+   "label": "Payments & COD"
+  },
+  {
+   "fieldname": "default_payment_provider",
+   "fieldtype": "Data",
+   "label": "Default Payment Provider",
+   "default": "cod"
+  },
+  {
+   "fieldname": "enabled_payment_providers",
+   "fieldtype": "Small Text",
+   "label": "Enabled Payment Providers",
+   "default": "cod",
+   "description": "One provider code per line (see hooks lamsa_payment_providers)"
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "cod_cash_account",
+   "fieldtype": "Link",
+   "label": "COD Cash Account",
+   "options": "Account",
+   "description": "Cash account debited when agents hand over collected cash"
+  },
+  {
+   "fieldname": "storefront_section",
+   "fieldtype": "Section Break",
+   "label": "Storefront & Notifications"
+  },
+  {
+   "fieldname": "store_name",
+   "fieldtype": "Data",
+   "label": "Store Name",
+   "default": "لمسة"
+  },
+  {
+   "fieldname": "storefront_url",
+   "fieldtype": "Data",
+   "label": "Storefront URL",
+   "options": "URL"
+  },
+  {
+   "fieldname": "whatsapp_number",
+   "fieldtype": "Data",
+   "label": "Store WhatsApp Number",
+   "description": "Libyan mobile, e.g. 0912345678"
+  },
+  {
+   "fieldname": "column_break_4",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "notification_channel",
+   "fieldtype": "Data",
+   "label": "Order Notification Channel",
+   "default": "log",
+   "description": "log or whatsapp (see hooks lamsa_notification_channels)"
+  },
+  {
+   "fieldname": "shipping_provider",
+   "fieldtype": "Data",
+   "label": "Shipping Provider",
+   "default": "manual"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-09-26 01:44:42.938409",
+ "modified_by": "Administrator",
+ "module": "Lamsa Store",
+ "name": "Lamsa Settings",
+ "owner": "Administrator",
+ "states": [],
+ "issingle": 1,
+ "track_changes": 1,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1
+  },
+  {
+   "role": "Lamsa Store Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1
+  }
+ ]
+}

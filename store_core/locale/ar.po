@@ -1,0 +1,105 @@
+# Arabic translations for store_core (desk labels).
+# Customer-facing storefront text lives in storefront/messages/ar.json.
+msgid ""
+msgstr ""
+"Language: ar\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=6; plural=n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 && n%100<=10 ? 3 : n%100>=11 ? 4 : 5;\n"
+
+msgid "Lamsa Store"
+msgstr "متجر لمسة"
+
+msgid "Lamsa Settings"
+msgstr "إعدادات لمسة"
+
+msgid "Delivery Zone"
+msgstr "منطقة التوصيل"
+
+msgid "Delivery Agent"
+msgstr "مندوب التوصيل"
+
+msgid "Delivery Assignment"
+msgstr "مهمة توصيل"
+
+msgid "COD Settlement"
+msgstr "تسوية الدفع عند الاستلام"
+
+msgid "COD Settlement Item"
+msgstr "بند تسوية الدفع عند الاستلام"
+
+msgid "Size Guide"
+msgstr "دليل المقاسات"
+
+msgid "Age Range"
+msgstr "الفئة العمرية"
+
+msgid "New"
+msgstr "جديد"
+
+msgid "Confirmed"
+msgstr "مؤكد"
+
+msgid "Out for Delivery"
+msgstr "خرج للتوصيل"
+
+msgid "Delivered"
+msgstr "تم التوصيل"
+
+msgid "Returned"
+msgstr "مرتجع"
+
+msgid "Cancelled"
+msgstr "ملغي"
+
+msgid "Publish in Store"
+msgstr "نشر في المتجر"
+
+msgid "Featured on Home Page"
+msgstr "مميز في الصفحة الرئيسية"
+
+msgid "URL Slug"
+msgstr "رابط الصفحة"
+
+msgid "Show in Store"
+msgstr "إظهار في المتجر"
+
+msgid "Store Order No"
+msgstr "رقم طلب المتجر"
+
+msgid "Gift Wrap"
+msgstr "تغليف هدية"
+
+msgid "Gift Message"
+msgstr "رسالة الهدية"
+
+msgid "Order Source"
+msgstr "مصدر الطلب"
+
+msgid "Store Status"
+msgstr "حالة الطلب في المتجر"
+
+msgid "Customer Phone"
+msgstr "هاتف الزبون"
+
+msgid "Address Notes"
+msgstr "ملاحظات العنوان"
+
+msgid "Amount to Collect"
+msgstr "المبلغ المطلوب تحصيله"
+
+msgid "Collected Amount"
+msgstr "المبلغ المحصّل"
+
+msgid "Cash In Hand (unsettled)"
+msgstr "نقد لدى المندوب (غير مسوّى)"
+
+msgid "Cannot change status from {0} to {1}"
+msgstr "لا يمكن تغيير الحالة من {0} إلى {1}"
+
+msgid "Phone must be a valid Libyan mobile number"
+msgstr "يجب أن يكون الهاتف رقم جوال ليبي صحيح"
+
+msgid "Delivery Fee cannot be negative"
+msgstr "رسوم التوصيل لا يمكن أن تكون سالبة"
