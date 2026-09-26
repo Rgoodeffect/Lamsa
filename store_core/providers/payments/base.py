@@ -17,7 +17,12 @@ from dataclasses import asdict, dataclass, field
 
 @dataclass
 class PaymentResult:
-	status: str  # "pending" | "redirect" | "paid" | "failed"
+	#: "pending"  offline, nothing to do (cash on delivery)
+	#: "redirect" send the customer to `redirect_url`
+	#: "lightbox" open an embedded gateway widget with `extra` (Moamalat)
+	#: "otp_required" the customer must confirm a code (wallet gateways)
+	#: "paid" / "failed" the outcome of a verified callback
+	status: str
 	provider: str
 	redirect_url: str | None = None
 	reference: str | None = None
@@ -46,6 +51,15 @@ class PaymentProvider(ABC):
 
 	def refund(self, sales_order, amount: float, reason: str | None = None) -> PaymentResult:
 		raise NotImplementedError(f"{self.code} does not support refunds")
+
+	def is_available(self) -> bool:
+		"""Can this provider actually take a payment right now?
+
+		An online provider whose credentials are missing must not be offered at checkout: the
+		customer would place a card order that nothing can charge. Offline providers are always
+		available.
+		"""
+		return True
 
 	def public_info(self) -> dict:
 		return {"code": self.code, "label_key": self.label_key, "is_online": self.is_online}

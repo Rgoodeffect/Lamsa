@@ -68,6 +68,9 @@ export function MobileMenu({ categories }: { categories: Category[] }) {
                 </li>
               ))}
               <li className="border-t border-line pt-3">
+                <Link href="/offers" className="block rounded-xl px-3 py-3 font-semibold text-danger hover:bg-primary-50">
+                  {t("nav.offers")}
+                </Link>
                 <Link href="/track" className="block rounded-xl px-3 py-3 hover:bg-primary-50">
                   {t("nav.track")}
                 </Link>

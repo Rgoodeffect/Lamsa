@@ -30,6 +30,11 @@ export function Header({ categories }: { categories: Category[] }) {
                 </Link>
               </li>
             ))}
+            <li>
+              <Link href="/offers" className="py-2 font-semibold text-danger hover:text-danger/80">
+                {t("nav.offers")}
+              </Link>
+            </li>
           </ul>
         </nav>
 

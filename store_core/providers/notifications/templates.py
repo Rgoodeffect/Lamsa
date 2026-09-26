@@ -11,6 +11,18 @@ TEMPLATES = {
 	"delivered": "تم توصيل طلبك رقم {order_no}. شكراً لاختيارك لمسة 💕",
 	"returned": "تم إرجاع طلبك رقم {order_no}. للاستفسار تواصل معنا عبر واتساب.",
 	"cancelled": "تم إلغاء طلبك رقم {order_no}. للاستفسار تواصل معنا عبر واتساب.",
+	"coupon_earned": "مبروك {customer_name} 🎁\nلأن قيمة طلبك وصلت للمبلغ المطلوب، ربحتِ كوبون خصم {coupon_percent}% على طلبك القادم.\nكود الكوبون: {coupon_code}\nصالح حتى {coupon_valid_upto}.\nلمسة",
+}
+
+
+# Delivery Assignment status -> template. Lives here, next to the texts, so it can be unit tested
+# without a bench; `services.events` reads it.
+STATUS_TEMPLATES = {
+	"Confirmed": "order_confirmed",
+	"Out for Delivery": "out_for_delivery",
+	"Delivered": "delivered",
+	"Returned": "returned",
+	"Cancelled": "cancelled",
 }
 
 
@@ -20,5 +32,5 @@ def render(template: str, context: dict) -> str:
 		return ""
 	try:
 		return text.format(**context)
-	except KeyError, IndexError:
+	except (KeyError, IndexError):
 		return text

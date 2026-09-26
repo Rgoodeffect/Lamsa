@@ -9,6 +9,7 @@ export const META_COLUMNS = [
   "availability",
   "condition",
   "price",
+  "sale_price",
   "link",
   "image_link",
   "additional_image_link",
@@ -35,6 +36,7 @@ export function toFeedRows(
     availability: item.availability,
     condition: item.condition || "new",
     price: item.price,
+    sale_price: item.sale_price || "",
     link: `${siteUrl}/p/${encodeURIComponent(item.slug)}`,
     image_link: media(item.image_link) ?? "",
     additional_image_link: (item.additional_image_link || "")

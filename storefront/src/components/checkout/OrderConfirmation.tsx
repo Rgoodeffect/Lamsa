@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
 import { trackPixel } from "@/lib/analytics/pixel";
-import type { OrderResult } from "@/lib/erp/types";
+import { postJson } from "@/lib/client-api";
+import type { OrderResult, PaymentStatusResult } from "@/lib/erp/types";
 import { formatPrice } from "@/lib/format";
 import { t } from "@/lib/i18n";
 
@@ -25,6 +26,26 @@ function readOrder(orderNo: string): string | null {
 export function OrderConfirmation({ orderNo }: { orderNo: string }) {
   const raw = useSyncExternalStore(noop, () => readOrder(orderNo), () => null);
   const order: Stored | null = raw ? JSON.parse(raw) : null;
+  // What the browser stored was written before the gateway answered, so ask ERPNext for the
+  // payment status of a card order rather than trusting the copy in sessionStorage.
+  const [paymentStatus, setPaymentStatus] = useState<string | null>(null);
+  const isOnlinePayment = Boolean(order && order.payment_provider && order.payment_provider !== "cod");
+
+  useEffect(() => {
+    if (!order || !isOnlinePayment) return;
+    let active = true;
+    void postJson<PaymentStatusResult>("/api/payment/status", {
+      order_no: order.order_no,
+      event_id: order.event_id,
+    }).then((res) => {
+      if (active && res.ok) setPaymentStatus(res.data.payment_status);
+    });
+    return () => {
+      active = false;
+    };
+  }, [order, isOnlinePayment]);
+
+  const paid = paymentStatus === "Paid";
 
   useEffect(() => {
     if (!order) return;
@@ -76,9 +97,14 @@ export function OrderConfirmation({ orderNo }: { orderNo: string }) {
             ))}
           </ul>
           <p className="flex justify-between border-t border-line pt-2 text-base font-bold">
-            <span>{t("order.total_cod")}</span>
+            <span>{paid ? t("order.total_paid") : t("order.total_cod")}</span>
             <span>{formatPrice(order.grand_total, order.currency)}</span>
           </p>
+          {isOnlinePayment && paymentStatus ? (
+            <p className={paid ? "text-success" : "text-danger"} data-testid="order-payment-status">
+              {paid ? t("order.paid_badge") : t("order.awaiting_payment")}
+            </p>
+          ) : null}
         </div>
       ) : (
         <p className="mt-6 rounded-xl bg-cream p-4 text-sm text-muted">{t("order.not_found_local")}</p>

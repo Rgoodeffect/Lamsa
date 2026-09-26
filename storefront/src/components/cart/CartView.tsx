@@ -10,13 +10,14 @@ import { useQuote } from "@/lib/use-quote";
 
 import { BagIcon } from "../Icons";
 import { ProductImage } from "../ProductImage";
+import { CouponField } from "./CouponField";
 import { Summary } from "./Summary";
 
 const noop = () => () => {};
 
 export function CartView() {
   const hydrated = useSyncExternalStore(noop, () => true, () => false);
-  const { quote, error, loading, lines } = useQuote();
+  const { quote, error, couponError, loading, lines } = useQuote();
   const setQty = useCart((s) => s.setQty);
   const remove = useCart((s) => s.remove);
 
@@ -79,6 +80,7 @@ export function CartView() {
             {error}
           </p>
         )}
+        <CouponField applied={quote?.coupon ?? null} error={couponError} currency={quote?.currency ?? ""} />
         <Summary quote={quote} showDelivery={false} loading={loading} />
         <p className="text-xs text-muted">{t("cart.delivery_note")}</p>
         <Link href="/checkout" className="btn btn-primary w-full" data-testid="go-checkout">

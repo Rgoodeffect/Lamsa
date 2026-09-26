@@ -12,8 +12,8 @@ export function clientIp(req: NextRequest): string {
   return (real || forwarded || "unknown").trim().slice(0, 64);
 }
 
-export function limited(req: NextRequest, name: string, cfg: { limit: number; windowMs: number }) {
-  const r = rateLimit(`${name}:${clientIp(req)}`, cfg.limit, cfg.windowMs);
+export async function limited(req: NextRequest, name: string, cfg: { limit: number; windowMs: number }) {
+  const r = await rateLimit(`${name}:${clientIp(req)}`, cfg.limit, cfg.windowMs);
   if (r.ok) return null;
   return NextResponse.json(
     { ok: false, error: { code: "rate_limited" } },

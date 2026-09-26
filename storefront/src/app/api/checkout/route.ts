@@ -6,7 +6,7 @@ import { limits } from "@/lib/rate-limit";
 
 /** POST guest checkout. All prices/fees are recalculated by ERPNext; only choices are sent. */
 export async function POST(req: NextRequest) {
-  const blocked = limited(req, "checkout", limits.checkout);
+  const blocked = await limited(req, "checkout", limits.checkout);
   if (blocked) return blocked;
   const body = await readJson(req);
   const items = cartItems(body?.items);
@@ -23,6 +23,7 @@ export async function POST(req: NextRequest) {
         gift_wrap: body.gift_wrap === true,
         gift_message: str(body.gift_message, 500),
         payment_provider: str(body.payment_provider, 40),
+        coupon_code: str(body.coupon_code, 40),
       },
       clientIp(req),
     ),

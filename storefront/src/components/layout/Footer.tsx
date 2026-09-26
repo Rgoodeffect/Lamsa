@@ -27,6 +27,11 @@ export function Footer({ categories }: { categories: Category[] }) {
           <p className="mb-3 font-semibold">{t("footer.help")}</p>
           <ul className="space-y-2 text-sm">
             <li>
+              <Link href="/offers" className="hover:text-primary-700">
+                {t("nav.offers")}
+              </Link>
+            </li>
+            <li>
               <Link href="/track" className="hover:text-primary-700">
                 {t("nav.track")}
               </Link>

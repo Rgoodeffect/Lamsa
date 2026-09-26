@@ -17,7 +17,12 @@ import type {
   Category,
   CheckoutInput,
   FeedItem,
+  ImageSearchResult,
   OrderResult,
+  PaymentInstruction,
+  PaymentProviderInfo,
+  PaymentStatusResult,
+  PaymentVerification,
   ProductCard,
   ProductList,
   ProductQuery,
@@ -46,11 +51,31 @@ const fail = <T>(code: string, details?: Record<string, string | number>, status
   status,
 });
 
-type Sellable = { product: MockProduct; code: string; size: string | null; color: string | null; price: number; stock: number };
+type Sellable = {
+  product: MockProduct;
+  code: string;
+  size: string | null;
+  color: string | null;
+  price: number;
+  list_price: number;
+  stock: number;
+};
 
 function sellables(p: MockProduct): Sellable[] {
-  if (p.variants?.length) return p.variants.map((v) => ({ product: p, ...v }));
-  return [{ product: p, code: p.code, size: null, color: null, price: p.price ?? 0, stock: p.stock ?? 0 }];
+  if (p.variants?.length) {
+    return p.variants.map((v) => ({ product: p, ...v, list_price: v.list_price ?? v.price }));
+  }
+  return [
+    {
+      product: p,
+      code: p.code,
+      size: null,
+      color: null,
+      price: p.price ?? 0,
+      list_price: p.list_price ?? p.price ?? 0,
+      stock: p.stock ?? 0,
+    },
+  ];
 }
 
 const heldStock = new Map<string, number>();
@@ -74,6 +99,7 @@ function descendants(groupName: string): Set<string> {
 function card(p: MockProduct): ProductCard {
   const all = sellables(p);
   const prices = all.map((s) => s.price);
+  const listPrices = all.map((s) => s.list_price);
   const colors = [...new Set(all.map((s) => s.color).filter(Boolean))] as string[];
   return {
     code: p.code,
@@ -83,6 +109,9 @@ function card(p: MockProduct): ProductCard {
     hover_image: p.images[1] ?? null,
     min_price: Math.min(...prices),
     max_price: Math.max(...prices),
+    list_min_price: Math.min(...listPrices),
+    list_max_price: Math.max(...listPrices),
+    on_sale: Math.max(...listPrices) > Math.max(...prices),
     in_stock: all.some((s) => available(s) > 0),
     colors: colors.map((name) => ({ name, swatch: MOCK_COLORS[name] })),
     group_slug: MOCK_GROUPS.find((g) => g.name === p.group)?.slug ?? null,
@@ -136,6 +165,58 @@ function paginate<T>(items: T[], page = 1, pageSize = 24) {
   };
 }
 
+/**
+ * Mock payment providers. Cash is always offered; ERP_MOCK_ONLINE_PAYMENT=1 also offers the card
+ * provider, so the Lightbox path can be exercised without ERPNext or a merchant account. Its
+ * parameters are obviously fake — the real ones are signed by ERPNext with the merchant secret.
+ */
+const MOCK_ONLINE_PAYMENT = process.env.ERP_MOCK_ONLINE_PAYMENT === "1";
+const MOCK_PAYMENT_PROVIDERS: PaymentProviderInfo[] = [
+  { code: "cod", label_key: "payment.cod", is_online: false },
+  ...(MOCK_ONLINE_PAYMENT ? [{ code: "moamalat", label_key: "payment.moamalat", is_online: true }] : []),
+];
+
+function mockPaymentInstruction(provider: string, orderNo: string, total: number): PaymentInstruction {
+  if (provider !== "moamalat") return { status: "pending" };
+  return {
+    status: "lightbox",
+    reference: orderNo,
+    amount: total,
+    extra: {
+      script_url: "/mock/lightbox.js",
+      environment: "mock",
+      params: {
+        MID: "MOCK-MID",
+        TID: "MOCK-TID",
+        AmountTrxn: Math.round(total * 1000),
+        MerchantReference: orderNo,
+        TrxDateTime: "202601010000",
+        SecureHash: "MOCK",
+      },
+    },
+  };
+}
+
+/**
+ * Mock coupons, mirroring what store_core/services/coupons.py does with ERPNext Coupon Codes:
+ * single use, a percentage of the goods only (never delivery or gift wrap), with an expiry.
+ * MOCK_COUPON is always available so the flow can be exercised; earned ones are added on delivery.
+ */
+type MockCoupon = { code: string; percent: number; used: boolean; valid_upto: string };
+const coupons = new Map<string, MockCoupon>([
+  ["LAMSADEMO10", { code: "LAMSADEMO10", percent: 10, used: false, valid_upto: "2099-12-31" }],
+]);
+
+function resolveCoupon(raw: string | undefined): MockCoupon | { error: string } | null {
+  const code = (raw ?? "").trim().toUpperCase();
+  if (!code) return null;
+  const coupon = coupons.get(code);
+  if (!coupon) return { error: "invalid_coupon" };
+  if (coupon.used) return { error: "coupon_used" };
+  if (coupon.valid_upto < new Date().toISOString().slice(0, 10)) return { error: "coupon_expired" };
+  return coupon;
+}
+
 export const mockApi = {
   async getCategories(): Promise<ApiResult<{ currency: string; categories: Category[] }>> {
     const node = (g: (typeof MOCK_GROUPS)[number]): Category => ({
@@ -158,6 +239,7 @@ export const mockApi = {
       const allowed = descendants(group.name);
       list = list.filter((p) => allowed.has(p.group));
     }
+    if (q.on_sale) list = list.filter((p) => card(p).on_sale);
     const scoped = list;
     if (q.featured) list = list.filter((p) => p.featured);
     if (q.age_ranges?.length) list = list.filter((p) => p.age_range && q.age_ranges!.includes(p.age_range));
@@ -226,6 +308,9 @@ export const mockApi = {
         images: p.images,
         min_price: c.min_price,
         max_price: c.max_price,
+        list_min_price: c.list_min_price,
+        list_max_price: c.list_max_price,
+        on_sale: c.on_sale,
         in_stock: c.in_stock,
         has_variants: hasVariants ? 1 : 0,
         stock: hasVariants ? null : stockLabel(available(sellables(p)[0])),
@@ -242,8 +327,9 @@ export const mockApi = {
             ].filter(([, val]) => val),
           ),
           price: v.price,
+          list_price: v.list_price ?? v.price,
           image: null,
-          stock: stockLabel(available({ product: p, ...v })),
+          stock: stockLabel(available({ product: p, ...v, list_price: v.list_price ?? v.price })),
         })),
         age_range: p.age_range ?? null,
         group_slug: group?.slug ?? null,
@@ -280,7 +366,8 @@ export const mockApi = {
       whatsapp: "218912345678",
       gift_wrap: { enabled: true, fee: MOCK_GIFT_WRAP_FEE, message_max_length: 250 },
       max_qty_per_line: MAX_QTY,
-      payment_providers: [{ code: "cod", label_key: "payment.cod", is_online: false }],
+      payment_providers: MOCK_PAYMENT_PROVIDERS,
+      image_search: true,
     });
   },
 
@@ -300,11 +387,20 @@ export const mockApi = {
     });
   },
 
-  async quote(body: { items: { item_code: string; qty: number }[]; zone?: string; gift_wrap?: boolean }): Promise<ApiResult<Quote>> {
+  async quote(body: {
+    items: { item_code: string; qty: number }[];
+    zone?: string;
+    gift_wrap?: boolean;
+    coupon_code?: string;
+  }): Promise<ApiResult<Quote>> {
     const lines = validateCart(body.items);
     if ("error" in lines) return fail(lines.error, lines.details);
     const zone = body.zone ? MOCK_ZONES.find((z) => z.zone === body.zone) : null;
     if (body.zone && !zone) return fail("invalid_zone");
+    const resolved = resolveCoupon(body.coupon_code);
+    // as in store_core.services.orders.quote: a bad coupon is reported, never fatal to the quote
+    const couponError = resolved && "error" in resolved ? resolved.error : null;
+    const coupon = resolved && "error" in resolved ? null : resolved;
     const items = lines.map(({ s, qty }) => ({
       item_code: s.code,
       name: s.product.name,
@@ -324,18 +420,24 @@ export const mockApi = {
     const subtotal = items.reduce((sum, i) => sum + i.amount, 0);
     const giftWrapFee = body.gift_wrap ? MOCK_GIFT_WRAP_FEE : 0;
     const deliveryFee = zone?.fee ?? 0;
+    // the goods only, as in store_core/services/coupons.py
+    const discount = coupon ? Math.round(subtotal * (coupon.percent / 100) * 100) / 100 : 0;
     return ok({
       currency: CURRENCY,
       items,
       subtotal,
       gift_wrap_fee: giftWrapFee,
       delivery_fee: deliveryFee,
-      discount: 0,
+      discount,
       taxes: 0,
-      grand_total: subtotal + giftWrapFee + deliveryFee,
+      grand_total: subtotal + giftWrapFee + deliveryFee - discount,
       zone: zone
         ? { name: zone.zone, city: zone.city, area: zone.area, fee: zone.fee, est_days_min: zone.est_days_min, est_days_max: zone.est_days_max }
         : null,
+      coupon: coupon
+        ? { code: coupon.code, percent: coupon.percent, discount, valid_upto: coupon.valid_upto }
+        : null,
+      coupon_error: couponError,
     });
   },
 
@@ -348,10 +450,21 @@ export const mockApi = {
     if (!phone) return fail("invalid_phone");
     if (!/^[A-Za-z0-9_-]{8,64}$/.test(input.event_id || "")) return fail("invalid_event_id");
     if (!input.zone) return fail("invalid_zone");
-    if ((input.payment_provider || "cod") !== "cod") return fail("payment_unavailable");
+    const provider = input.payment_provider || "cod";
+    if (!MOCK_PAYMENT_PROVIDERS.some((p) => p.code === provider)) return fail("payment_unavailable");
     if (input.gift_wrap && (input.gift_message || "").length > 250) return fail("gift_message_too_long");
-    const q = await mockApi.quote({ items: input.items, zone: input.zone, gift_wrap: input.gift_wrap });
+    const q = await mockApi.quote({
+      items: input.items,
+      zone: input.zone,
+      gift_wrap: input.gift_wrap,
+      coupon_code: input.coupon_code,
+    });
     if (!q.ok) return q;
+    // Checkout is strict where the quote is lenient, as store_core.services.orders.place_order is:
+    // the customer must not lose a discount they were counting on without being told.
+    if (q.data.coupon_error) return fail(q.data.coupon_error);
+    // single use, as ERPNext's on_submit counter enforces on the real backend
+    if (q.data.coupon) coupons.get(q.data.coupon.code)!.used = true;
     for (const line of q.data.items) heldStock.set(line.item_code, (heldStock.get(line.item_code) ?? 0) + line.qty);
     const orderNo = `L-${String(10001 + orders.size)}`;
     const result: OrderResult = {
@@ -361,8 +474,11 @@ export const mockApi = {
       grand_total: q.data.grand_total,
       items: q.data.items.map((i) => ({ item_code: i.item_code, name: i.name, qty: i.qty, rate: i.rate, amount: i.amount })),
       zone: q.data.zone,
-      payment_provider: "cod",
-      payment: { status: "pending" },
+      payment_provider: provider,
+      payment: mockPaymentInstruction(provider, orderNo, q.data.grand_total),
+      payment_status: "Unpaid",
+      discount: q.data.discount,
+      coupon_code: q.data.coupon?.code ?? null,
       event_id: input.event_id,
       duplicate: false,
     };
@@ -387,6 +503,48 @@ export const mockApi = {
     });
   },
 
+  /** Mock gateway: any payload naming a known order is treated as a successful payment. */
+  async verifyMoamalatPayment(payload: Record<string, unknown>): Promise<ApiResult<PaymentVerification>> {
+    const orderNo = String(payload?.MerchantReference ?? "").trim().toUpperCase();
+    const order = orders.get(orderNo);
+    if (!order) return fail("order_not_found", undefined, 404);
+    if (payload?.ErrorMessage) {
+      order.result.payment_status = "Failed";
+      return ok({ status: "failed", provider: "moamalat", order_no: orderNo, message: "payment_failed" });
+    }
+    order.result.payment_status = "Paid";
+    order.result.payment = { status: "paid" };
+    return ok({ status: "paid", provider: "moamalat", order_no: orderNo, message: null });
+  },
+
+  async getPaymentStatus(orderNo: string, eventId: string): Promise<ApiResult<PaymentStatusResult>> {
+    const order = orders.get((orderNo || "").trim().toUpperCase());
+    if (!order || order.result.event_id !== eventId) return fail("order_not_found", undefined, 404);
+    return ok({
+      order_no: order.result.order_no,
+      payment_status: order.result.payment_status ?? "Unpaid",
+      payment_provider: order.result.payment_provider,
+      status: order.result.status,
+    });
+  },
+
+  /**
+   * Mock image search. There is no model here, so it cannot judge what a photo looks like: it returns
+   * the featured products so the upload, loading and result states can be built and tested. The real
+   * ranking is store_core/services/vectors.py, which has its own unit tests.
+   */
+  async searchByImage(imageBase64: string, limit: number): Promise<ApiResult<ImageSearchResult>> {
+    if (!imageBase64) return fail("image_required");
+    // roughly the byte length of the base64 payload, to exercise the same limit as the backend
+    if (imageBase64.length * 0.75 > 8 * 1024 * 1024) return fail("image_too_large");
+    const cards = MOCK_PRODUCTS.map(card).filter((c) => c.in_stock).slice(0, limit);
+    return ok({
+      products: cards.map((c, i) => ({ ...c, score: Math.round((0.95 - i * 0.03) * 10000) / 10000 })),
+      matched: cards.length,
+      indexed: MOCK_PRODUCTS.length,
+    });
+  },
+
   async getMetaFeed(): Promise<ApiResult<{ currency: string; items: FeedItem[] }>> {
     const items: FeedItem[] = [];
     for (const p of MOCK_PRODUCTS) {
@@ -398,7 +556,9 @@ export const mockApi = {
           description: p.description.replace(/<[^>]+>/g, ""),
           availability: available(s) > 0 ? "in stock" : "out of stock",
           condition: "new",
-          price: `${s.price.toFixed(2)} ${CURRENCY}`,
+          // as in store_core.services.feed: `price` is the price-list rate, `sale_price` the discount
+          price: `${s.list_price.toFixed(2)} ${CURRENCY}`,
+          sale_price: s.price < s.list_price ? `${s.price.toFixed(2)} ${CURRENCY}` : "",
           slug: p.slug,
           image_link: p.images[0],
           additional_image_link: p.images.slice(1).join(","),

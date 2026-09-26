@@ -16,6 +16,7 @@ from collections import defaultdict
 import frappe
 from frappe.utils import cint, flt, getdate, nowdate
 
+from store_core.services import pricing
 from store_core.services.settings import color_attribute, get_settings, size_attribute
 from store_core.utils.slug import slugify
 
@@ -87,6 +88,7 @@ def build_index() -> dict:
 	attributes = _load_variant_attributes([v.name for v in variants])
 	value_meta = _load_attribute_values((size_attr, color_attr))
 	prices = _load_prices(all_codes, settings.selling_price_list)
+	discount_rules = pricing.catalog_discounts(settings, groups)
 	stock = load_stock(all_codes, settings.warehouse)
 	images = _load_images(all_codes)
 
@@ -101,9 +103,13 @@ def build_index() -> dict:
 		product_variants = []
 		if t.has_variants:
 			for v in variants_by_template.get(t.name, []):
-				price = prices.get(v.name, template_price)
-				if price is None:
+				list_price = prices.get(v.name, template_price)
+				if list_price is None:
 					continue
+				# A variant inherits the template's item group and brand for rule matching.
+				price = pricing.discounted(
+					list_price, pricing.match(discount_rules, v.name, t.item_group, t.brand)
+				)
 				attrs = attributes.get(v.name, {})
 				available = available_qty(stock, v.name, v.is_stock_item)
 				product_variants.append(
@@ -113,6 +119,7 @@ def build_index() -> dict:
 						"size": attrs.get(size_attr),
 						"color": attrs.get(color_attr),
 						"price": price,
+						"list_price": list_price,
 						"available": available,
 						"in_stock": available > 0,
 						"is_stock_item": cint(v.is_stock_item),
@@ -124,12 +131,17 @@ def build_index() -> dict:
 				continue
 			variant_prices = [pv["price"] for pv in product_variants]
 			min_price, max_price = min(variant_prices), max(variant_prices)
+			list_min_price = min(pv["list_price"] for pv in product_variants)
+			list_max_price = max(pv["list_price"] for pv in product_variants)
 			in_stock = any(pv["in_stock"] for pv in product_variants)
 			available = sum(pv["available"] for pv in product_variants)
 		else:
 			if template_price is None:
 				continue
-			min_price = max_price = template_price
+			list_min_price = list_max_price = template_price
+			min_price = max_price = pricing.discounted(
+				template_price, pricing.match(discount_rules, t.name, t.item_group, t.brand)
+			)
 			available = available_qty(stock, t.name, t.is_stock_item)
 			in_stock = available > 0
 
@@ -163,6 +175,10 @@ def build_index() -> dict:
 				"has_variants": cint(t.has_variants),
 				"min_price": min_price,
 				"max_price": max_price,
+				# Price-list prices before any catalog discount, for the struck-through "was" price.
+				"list_min_price": list_min_price,
+				"list_max_price": list_max_price,
+				"on_sale": list_max_price > max_price or list_min_price > min_price,
 				"in_stock": in_stock,
 				"available": available,
 				"is_stock_item": cint(t.is_stock_item),
@@ -433,6 +449,7 @@ def filter_products(
 	max_price: float | None = None,
 	in_stock: bool = False,
 	featured: bool = False,
+	on_sale: bool = False,
 	query: str | None = None,
 ) -> list[dict]:
 	products = index["products"]
@@ -446,6 +463,9 @@ def filter_products(
 
 	if featured:
 		products = [p for p in products if p["featured"]]
+
+	if on_sale:
+		products = [p for p in products if p["on_sale"]]
 
 	if age_ranges:
 		wanted = set(age_ranges)
@@ -538,6 +558,9 @@ def product_card(p: dict) -> dict:
 		"hover_image": p["images"][1] if len(p["images"]) > 1 else None,
 		"min_price": p["min_price"],
 		"max_price": p["max_price"],
+		"list_min_price": p["list_min_price"],
+		"list_max_price": p["list_max_price"],
+		"on_sale": p["on_sale"],
 		"in_stock": p["in_stock"],
 		"colors": p["colors"],
 		"group_slug": p["group_slug"],

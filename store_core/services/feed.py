@@ -46,12 +46,16 @@ def feed_rows(index: dict | None = None) -> list[dict]:
 			images = [i for i in ([v["image"]] if v and v["image"] else []) + p["images"] if i]
 			in_stock = v["in_stock"] if v else p["in_stock"]
 			price = v["price"] if v else p["min_price"]
+			list_price = v["list_price"] if v else p["list_min_price"]
 			rows.append(
 				{
 					**base,
 					"id": v["code"] if v else p["code"],
 					"availability": "in stock" if in_stock else "out of stock",
-					"price": f"{flt(price):.2f} {currency}",
+					# Meta shows `sale_price` struck through against `price`, so `price` stays the
+					# price-list rate and the discount goes in `sale_price`.
+					"price": f"{flt(list_price):.2f} {currency}",
+					"sale_price": f"{flt(price):.2f} {currency}" if flt(price) < flt(list_price) else "",
 					"image_link": images[0] if images else "",
 					"additional_image_link": ",".join(images[1:10]),
 					"size": (v or {}).get("size") or "",

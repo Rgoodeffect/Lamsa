@@ -5,15 +5,8 @@ from frappe.utils import cint, flt
 
 from store_core.providers.notifications.base import Message
 from store_core.providers.notifications.registry import notify
+from store_core.providers.notifications.templates import STATUS_TEMPLATES
 from store_core.services import catalog, revalidate
-
-STATUS_TEMPLATES = {
-	"Confirmed": "order_confirmed",
-	"Out for Delivery": "out_for_delivery",
-	"Delivered": "delivered",
-	"Returned": "returned",
-	"Cancelled": "cancelled",
-}
 
 
 def order_placed(sales_order: str):
@@ -34,9 +27,25 @@ def status_changed(sales_order: str, status: str):
 	template = STATUS_TEMPLATES.get(status)
 	if template:
 		send_status_message(so, template)
+	if status == "Delivered":
+		reward_coupon(so)
 
 
-def send_status_message(so, template: str) -> dict:
+def reward_coupon(so):
+	"""A completed order may earn a coupon for the next one; tell the customer when it does."""
+	from store_core.services import coupons
+
+	coupon = coupons.grant_reward(so)
+	if not coupon:
+		return
+	send_status_message(so, "coupon_earned", extra={
+		"coupon_code": coupon["code"],
+		"coupon_percent": f"{flt(coupon['percent']):g}",
+		"coupon_valid_upto": coupon["valid_upto"],
+	})
+
+
+def send_status_message(so, template: str, extra: dict | None = None) -> dict:
 	if not so.lamsa_phone:
 		return {"status": "skipped"}
 	zone = frappe.db.get_value(
@@ -59,6 +68,7 @@ def send_status_message(so, template: str) -> dict:
 				"grand_total": f"{flt(so.rounded_total or so.grand_total):,.2f}",
 				"currency": "د.ل" if so.currency == "LYD" else so.currency,
 				"eta": eta,
+				**(extra or {}),
 			},
 			reference_doctype="Sales Order",
 			reference_name=so.name,

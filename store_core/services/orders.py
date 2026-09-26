@@ -128,7 +128,13 @@ def get_zone(zone_name: str | None) -> dict | None:
 # ---------------------------------------------------------------------------
 
 
-def build_sales_order(lines: list[dict], zone: dict | None, gift_wrap: bool, customer: str | None = None):
+def build_sales_order(
+	lines: list[dict],
+	zone: dict | None,
+	gift_wrap: bool,
+	customer: str | None = None,
+	coupon: dict | None = None,
+):
 	settings = get_settings()
 	so = frappe.new_doc("Sales Order")
 	so.company = settings.company
@@ -177,8 +183,28 @@ def build_sales_order(lines: list[dict], zone: dict | None, gift_wrap: bool, cus
 	so.flags.ignore_permissions = True
 	so.set_missing_values()
 	_enforce_service_rates(so, settings, zone)
+	_apply_coupon(so, settings, coupon)
 	so.calculate_taxes_and_totals()
 	return so
+
+
+def _apply_coupon(so, settings, coupon: dict | None):
+	"""Discount the goods by the coupon's percentage, leaving delivery and gift wrap at cost.
+
+	Set before `calculate_taxes_and_totals`, which is what turns `discount_amount` into the totals.
+	"""
+	if not coupon:
+		return
+	from store_core.services import coupons
+
+	goods = sum(
+		flt(item.amount)
+		for item in so.items
+		if item.item_code not in (settings.gift_wrap_item, settings.delivery_fee_item)
+	)
+	so.coupon_code = coupon["name"]  # ERPNext validates it on save and counts it on submit
+	so.apply_discount_on = "Grand Total"
+	so.discount_amount = coupons.discount_for(goods, coupon)
 
 
 def _enforce_service_rates(so, settings, zone):
@@ -229,6 +255,7 @@ def summarize(so, lines: list[dict], zone: dict | None) -> dict:
 		"gift_wrap_fee": flt(gift_wrap_fee, 2),
 		"delivery_fee": flt(delivery_fee, 2),
 		"discount": flt(so.discount_amount, 2),
+		"coupon": None,  # filled in by the caller, which knows which coupon was applied
 		"taxes": flt(so.total_taxes_and_charges, 2),
 		"grand_total": flt(so.rounded_total or so.grand_total, 2),
 		"zone": _zone_public(zone),
@@ -248,12 +275,32 @@ def _zone_public(zone):
 	}
 
 
-def quote(items: list[dict], zone: str | None = None, gift_wrap: bool = False) -> dict:
+def quote(
+	items: list[dict], zone: str | None = None, gift_wrap: bool = False, coupon_code: str | None = None
+) -> dict:
+	"""Prices for a cart. A bad coupon is reported, not fatal.
+
+	A coupon the customer cannot use is a problem with the coupon, not with the cart, so the quote
+	still returns totals (without it) and names the reason in `coupon_error`. Otherwise a stale code
+	saved in the browser would leave the cart with no prices at all. Checkout is strict: there,
+	`place_order` refuses rather than quietly dropping a discount the customer was counting on.
+	"""
+	from store_core.services import coupons
+
 	lines = validate_cart(items)
 	zone_doc = get_zone(zone)
+	coupon, coupon_error = None, None
+	try:
+		coupon = coupons.resolve(coupon_code)
+	except CheckoutError as e:
+		coupon_error = e.code
+
 	with system_context():
-		so = build_sales_order(lines, zone_doc, bool(cint(gift_wrap)))
-		return summarize(so, lines, zone_doc)
+		so = build_sales_order(lines, zone_doc, bool(cint(gift_wrap)), coupon=coupon)
+		result = summarize(so, lines, zone_doc)
+		result["coupon"] = coupons.public_info(coupon, so.discount_amount)
+		result["coupon_error"] = coupon_error
+		return result
 
 
 # ---------------------------------------------------------------------------
@@ -291,7 +338,10 @@ def validate_customer_input(data: dict) -> dict:
 	if not data.get("zone"):
 		raise CheckoutError("invalid_zone")
 
+	coupon_code = str(data.get("coupon_code") or "").strip().upper()[:40]
+
 	return {
+		"coupon_code": coupon_code,
 		"full_name": name,
 		"phone": phone,
 		"address_notes": notes,
@@ -314,7 +364,7 @@ def _place_order(clean: dict, data: dict) -> dict:
 
 	# Idempotency: the storefront generates one event_id per checkout attempt (also used as the
 	# Meta Pixel/CAPI dedup id). A retried request returns the order that was already created.
-	existing = frappe.db.get_value("Sales Order", {"lamsa_event_id": clean["event_id"]}, "name")
+	existing = _claim_event_id(clean["event_id"])
 	if existing:
 		return order_response(frappe.get_doc("Sales Order", existing), duplicate=True)
 
@@ -328,7 +378,11 @@ def _place_order(clean: dict, data: dict) -> dict:
 		customer, clean["full_name"], clean["phone"], zone.city, zone.area, clean["address_notes"]
 	)
 
-	so = build_sales_order(lines, zone, clean["gift_wrap"], customer=customer)
+	from store_core.services import coupons
+
+	# Resolved after the customer exists: the coupon is validated again by ERPNext on save.
+	coupon = coupons.resolve(clean["coupon_code"])
+	so = build_sales_order(lines, zone, clean["gift_wrap"], customer=customer, coupon=coupon)
 	so.customer_address = address
 	so.shipping_address_name = address
 	so.contact_person = get_primary_contact(customer)
@@ -342,8 +396,14 @@ def _place_order(clean: dict, data: dict) -> dict:
 	so.lamsa_gift_message = clean["gift_message"]
 	so.lamsa_payment_provider = clean["payment_provider"]
 	so.lamsa_event_id = clean["event_id"]
+	provider = payment_registry.get_provider(clean["payment_provider"])
+	so.lamsa_payment_status = "Unpaid"
 	so.flags.ignore_permissions = True
 	so.insert()  # Draft: staff confirm by phone, then "Confirmed" submits it.
+
+	# An online payment arrives before delivery, so the agent collects nothing. Until the gateway
+	# confirms it the order is still unpaid, and services.payments zeroes this when it does.
+	to_collect = 0 if provider.is_online else flt(so.rounded_total or so.grand_total)
 
 	assignment = frappe.get_doc(
 		{
@@ -359,13 +419,13 @@ def _place_order(clean: dict, data: dict) -> dict:
 			"gift_wrap": so.lamsa_gift_wrap,
 			"gift_message": so.lamsa_gift_message,
 			"payment_provider": clean["payment_provider"],
-			"expected_amount": flt(so.rounded_total or so.grand_total),
+			"expected_amount": to_collect,
 		}
 	)
 	assignment.flags.ignore_permissions = True
 	assignment.insert()
 
-	payment = payment_registry.get_provider(clean["payment_provider"]).initiate(so)
+	payment = provider.initiate(so)
 
 	frappe.enqueue(
 		"store_core.services.events.order_placed",
@@ -375,6 +435,21 @@ def _place_order(clean: dict, data: dict) -> dict:
 	)
 
 	return order_response(so, payment=payment.as_dict())
+
+
+def _claim_event_id(event_id: str) -> str | None:
+	"""Return an existing order for this event_id, or reserve the value for this transaction.
+
+	`lamsa_event_id` is indexed, so `FOR UPDATE` on a value that does not exist yet takes an InnoDB
+	gap lock: a second, concurrent request with the same event_id blocks here until this transaction
+	commits, then sees the order instead of creating a duplicate one. Without the lock two taps on
+	the checkout button can both pass the check and place two orders.
+	"""
+	rows = frappe.db.sql(
+		"select name from `tabSales Order` where lamsa_event_id = %s for update",
+		(event_id,),
+	)
+	return rows[0][0] if rows else None
 
 
 def _lock_stock(item_codes: list[str]):
@@ -412,6 +487,8 @@ def order_response(so, payment: dict | None = None, duplicate: bool = False) -> 
 		"zone": _zone_public(zone),
 		"payment_provider": so.lamsa_payment_provider,
 		"payment": payment or {"status": "pending"},
+		"discount": flt(so.discount_amount, 2),
+		"coupon_code": so.get("coupon_code"),
 		"event_id": so.lamsa_event_id,
 		"duplicate": duplicate,
 	}

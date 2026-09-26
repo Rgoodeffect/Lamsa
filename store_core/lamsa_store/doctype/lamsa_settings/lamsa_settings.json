@@ -30,13 +30,26 @@
   "enabled_payment_providers",
   "column_break_3",
   "cod_cash_account",
+  "online_payment_account",
   "storefront_section",
   "store_name",
   "storefront_url",
   "whatsapp_number",
   "column_break_4",
   "notification_channel",
-  "shipping_provider"
+  "shipping_provider",
+  "coupon_section",
+  "coupon_reward_enabled",
+  "coupon_reward_threshold",
+  "coupon_reward_percent",
+  "coupon_column_break",
+  "coupon_reward_validity_days",
+  "coupon_reward_pricing_rule",
+  "image_search_section",
+  "image_search_enabled",
+  "image_embedder",
+  "image_search_column",
+  "image_search_min_similarity"
  ],
  "fields": [
   {
@@ -194,6 +207,13 @@
    "description": "Cash account debited when agents hand over collected cash"
   },
   {
+   "fieldname": "online_payment_account",
+   "fieldtype": "Link",
+   "label": "Online Payment Account",
+   "options": "Account",
+   "description": "Bank/settlement account credited when a card or wallet payment is confirmed"
+  },
+  {
    "fieldname": "storefront_section",
    "fieldtype": "Section Break",
    "label": "Storefront & Notifications"
@@ -232,6 +252,81 @@
    "fieldtype": "Data",
    "label": "Shipping Provider",
    "default": "manual"
+  },
+  {
+   "fieldname": "coupon_section",
+   "fieldtype": "Section Break",
+   "label": "Loyalty Coupons"
+  },
+  {
+   "fieldname": "coupon_reward_enabled",
+   "fieldtype": "Check",
+   "label": "Reward a Coupon on Delivered Orders",
+   "description": "When a delivered order reaches the threshold, the customer is sent a coupon for their next order"
+  },
+  {
+   "fieldname": "coupon_reward_threshold",
+   "fieldtype": "Currency",
+   "label": "Order Total to Earn a Coupon",
+   "depends_on": "coupon_reward_enabled"
+  },
+  {
+   "fieldname": "coupon_reward_percent",
+   "fieldtype": "Percent",
+   "label": "Coupon Discount %",
+   "depends_on": "coupon_reward_enabled"
+  },
+  {
+   "fieldname": "coupon_column_break",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "coupon_reward_validity_days",
+   "fieldtype": "Int",
+   "label": "Coupon Valid For (days)",
+   "default": "30",
+   "depends_on": "coupon_reward_enabled"
+  },
+  {
+   "fieldname": "coupon_reward_pricing_rule",
+   "fieldtype": "Link",
+   "label": "Coupon Pricing Rule",
+   "options": "Pricing Rule",
+   "read_only": 1,
+   "depends_on": "coupon_reward_enabled",
+   "description": "Created automatically from the discount % above; every rewarded coupon is linked to it"
+  },
+  {
+   "fieldname": "image_search_section",
+   "fieldtype": "Section Break",
+   "label": "Search by Image"
+  },
+  {
+   "fieldname": "image_search_enabled",
+   "fieldtype": "Check",
+   "label": "Enable Search by Image",
+   "description": "Needs onnxruntime and a model on the server; see the README"
+  },
+  {
+   "fieldname": "image_embedder",
+   "fieldtype": "Data",
+   "label": "Image Embedder",
+   "default": "clip_onnx",
+   "depends_on": "image_search_enabled",
+   "description": "Code from the lamsa_image_embedders hook"
+  },
+  {
+   "fieldname": "image_search_column",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "image_search_min_similarity",
+   "fieldtype": "Float",
+   "label": "Minimum Similarity",
+   "default": "0.75",
+   "precision": "2",
+   "depends_on": "image_search_enabled",
+   "description": "Below this, a photo returns no results instead of an unrelated product (0 to 1)"
   }
  ],
  "index_web_pages_for_search": 1,

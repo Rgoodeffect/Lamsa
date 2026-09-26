@@ -23,7 +23,10 @@ before_uninstall = "store_core.setup.install.before_uninstall"
 doc_events = {
 	"Item": {
 		"before_validate": "store_core.services.catalog_hooks.item_before_validate",
-		"on_update": "store_core.services.revalidate.on_catalog_change",
+		"on_update": [
+			"store_core.services.revalidate.on_catalog_change",
+			"store_core.services.image_search.on_item_change",
+		],
 		"on_trash": "store_core.services.revalidate.on_catalog_change",
 	},
 	"Item Group": {
@@ -53,6 +56,9 @@ lamsa_payment_providers = [
 ]
 lamsa_shipping_providers = [
 	"manual:store_core.providers.shipping.manual.ManualShipping",
+]
+lamsa_image_embedders = [
+	"clip_onnx:store_core.providers.embeddings.clip_onnx.ClipOnnxEmbedder",
 ]
 lamsa_notification_channels = [
 	"log:store_core.providers.notifications.log.LogChannel",

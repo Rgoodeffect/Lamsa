@@ -8,6 +8,7 @@ import unittest
 from itertools import pairwise
 from pathlib import Path
 
+from store_core.providers.notifications import templates
 from store_core.utils import status_machine as sm
 from store_core.utils.phone import InvalidPhone, local_format, normalize_libyan_phone, whatsapp_number
 from store_core.utils.slug import slugify
@@ -71,3 +72,44 @@ class TestSlug(unittest.TestCase):
 		self.assertEqual(slugify("هدايا_ومناسبات"), "هدايا-ومناسبات")
 		self.assertEqual(slugify(""), "")
 		self.assertLessEqual(len(slugify("ا" * 200)), 80)
+
+
+class TestNotificationTemplates(unittest.TestCase):
+	"""templates.py is pure Python, so it belongs here: importing it is what catches a syntax error.
+
+	It had none of this coverage before, which is how `except KeyError, IndexError:` (Python 2
+	syntax) shipped: nothing imported the module outside a running bench.
+	"""
+
+	def test_every_template_renders_with_the_full_context(self):
+		context = {
+			"customer_name": "سارة",
+			"order_no": "L-00042",
+			"grand_total": "250.00",
+			"currency": "د.ل",
+			"eta": "2-3 أيام",
+			"coupon_code": "LAMSAAB12CD",
+			"coupon_percent": "10",
+			"coupon_valid_upto": "2026-10-26",
+		}
+		for name in templates.TEMPLATES:
+			with self.subTest(template=name):
+				text = templates.render(name, context)
+				self.assertTrue(text)
+				self.assertNotIn("{", text)
+
+	def test_missing_placeholder_returns_the_raw_template(self):
+		text = templates.render("order_placed", {})
+		self.assertEqual(text, templates.TEMPLATES["order_placed"])
+
+	def test_unknown_template_is_empty(self):
+		self.assertEqual(templates.render("no_such_template", {}), "")
+
+	def test_every_status_has_a_message(self):
+		"""Every status a customer can be told about maps to a template that exists."""
+		for status in sm.STATUSES:
+			if status == sm.NEW:  # a new order gets "order_placed" instead
+				continue
+			with self.subTest(status=status):
+				self.assertIn(status, templates.STATUS_TEMPLATES)
+				self.assertIn(templates.STATUS_TEMPLATES[status], templates.TEMPLATES)

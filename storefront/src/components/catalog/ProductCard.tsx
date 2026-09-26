@@ -30,7 +30,14 @@ export function ProductCard({ product, currency, priority = false }: { product: 
       </div>
       <div className="space-y-1.5 p-3">
         <h3 className="line-clamp-2 text-[0.95rem] font-medium leading-6">{product.name}</h3>
-        <Price min={product.min_price} max={product.max_price} currency={currency} className="text-sm" />
+        <Price
+          min={product.min_price}
+          max={product.max_price}
+          listMin={product.list_min_price}
+          listMax={product.list_max_price}
+          currency={currency}
+          className="text-sm"
+        />
         {product.colors.length > 1 && (
           <div className="flex gap-1" aria-hidden>
             {product.colors.slice(0, 5).map((c) => (

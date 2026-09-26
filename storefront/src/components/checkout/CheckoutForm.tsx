@@ -13,8 +13,10 @@ import { type MessageKey, t } from "@/lib/i18n";
 import { isValidLibyanPhone } from "@/lib/phone";
 import { useQuote } from "@/lib/use-quote";
 
+import { CouponField } from "../cart/CouponField";
 import { Summary } from "../cart/Summary";
 import { GiftIcon } from "../Icons";
+import { MoamalatLightbox } from "./MoamalatLightbox";
 
 const noop = () => () => {};
 export const ORDER_STORAGE_PREFIX = "lamsa-order:";
@@ -37,10 +39,12 @@ export function CheckoutForm({ zones, config }: { zones: Zones; config: StoreCon
   const [errors, setErrors] = useState<Errors>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  // Set when an online provider needs the customer to pay before we leave the page.
+  const [payingFor, setPayingFor] = useState<OrderResult | null>(null);
   // one id per checkout attempt: idempotency key for ERPNext + Pixel/CAPI dedup id
   const eventId = useRef<string>("");
 
-  const { quote, error: quoteError, loading, lines } = useQuote({ zone, giftWrap });
+  const { quote, error: quoteError, couponError, loading, lines } = useQuote({ zone, giftWrap });
   const areas = useMemo(() => zones.cities.find((c) => c.city === city)?.areas ?? [], [zones, city]);
   const selectedArea = areas.find((a) => a.zone === zone);
 
@@ -57,6 +61,19 @@ export function CheckoutForm({ zones, config }: { zones: Zones; config: StoreCon
   }, [quote]);
 
   if (!hydrated) return <p className="mt-6 text-muted">{t("common.loading")}</p>;
+  // Must come before the empty-cart branch: that branch would otherwise win the moment the cart is
+  // emptied and show "your cart is empty" instead of the payment window, stranding an unpaid order.
+  if (payingFor) {
+    return (
+      <MoamalatLightbox
+        order={payingFor}
+        onPaid={() => {
+          clear();
+          router.push(`/order/${encodeURIComponent(payingFor.order_no)}`);
+        }}
+      />
+    );
+  }
   if (!lines.length) {
     return (
       <div className="mt-6 rounded-card bg-surface p-10 text-center">
@@ -97,6 +114,7 @@ export function CheckoutForm({ zones, config }: { zones: Zones; config: StoreCon
       gift_wrap: giftWrap,
       gift_message: giftWrap ? giftMessage.trim() : "",
       payment_provider: provider,
+      coupon_code: useCart.getState().couponCode || undefined,
       event_id: eventId.current,
     });
     if (!res.ok) {
@@ -110,6 +128,12 @@ export function CheckoutForm({ zones, config }: { zones: Zones; config: StoreCon
       sessionStorage.setItem(ORDER_STORAGE_PREFIX + order.order_no, JSON.stringify({ ...order, phone }));
     } catch {
       /* private mode: the confirmation page falls back to tracking */
+    }
+    if (order.payment.status === "lightbox") {
+      // The order exists as a draft but is not paid until ERPNext verifies the gateway's response,
+      // so the cart stays as it is: if the payment fails the customer can retry or switch to cash.
+      setPayingFor(order);
+      return;
     }
     clear();
     if (order.payment.status === "redirect" && order.payment.redirect_url) {
@@ -278,6 +302,7 @@ export function CheckoutForm({ zones, config }: { zones: Zones; config: StoreCon
             </li>
           ))}
         </ul>
+        <CouponField applied={quote?.coupon ?? null} error={couponError} currency={quote?.currency ?? ""} />
         <Summary quote={quote} showDelivery loading={loading} />
         {(submitError || quoteError) && (
           <p className="rounded-xl bg-danger/10 px-3 py-2 text-sm text-danger" role="alert" data-testid="checkout-error">

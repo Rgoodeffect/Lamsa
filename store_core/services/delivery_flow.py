@@ -3,8 +3,10 @@
 New -> Confirmed           submit the Sales Order (reserves stock in ERPNext)
 Confirmed -> Out for Del.  create + submit the Delivery Note (stock leaves the warehouse),
                            book the shipment with the configured shipping provider
-Out for Del. -> Delivered  create + submit the Sales Invoice; the cash is now held by the agent
-                           until a COD Settlement records it (Payment Entry)
+Out for Del. -> Delivered  create + submit the Sales Invoice; for a cash order the money is now
+                           held by the agent until a COD Settlement records it (Payment Entry),
+                           and for an order already paid online the advance is allocated to the
+                           invoice so it is not left outstanding
 Out for Del. -> Returned   submit a return Delivery Note (stock comes back), close the order
 New/Confirmed -> Cancelled cancel the submitted Sales Order (a Draft one is kept, marked Cancelled)
 
@@ -84,11 +86,25 @@ def _deliver(assignment):
 		assignment.collected_amount = flt(assignment.expected_amount)
 	if not assignment.sales_invoice:
 		si = make_sales_invoice(assignment.delivery_note)
+		_allocate_prepayment(si, assignment)
 		si.flags.ignore_permissions = True
 		si.insert()
 		si.submit()
 		assignment.sales_invoice = si.name
 	_persist(assignment, "sales_invoice", "collected_amount")
+
+
+def _allocate_prepayment(si, assignment):
+	"""An online payment was booked as an advance against the Sales Order: pull it into the invoice.
+
+	Without this the money sits as an advance on the order while the invoice reads as fully
+	outstanding, so the customer looks like a debtor for an order they already paid for.
+	"""
+	paid = frappe.db.get_value("Sales Order", assignment.sales_order, "lamsa_payment_status")
+	if paid != "Paid":
+		return
+	si.allocate_advances_automatically = 1
+	si.set_advances()
 
 
 def _return(assignment):

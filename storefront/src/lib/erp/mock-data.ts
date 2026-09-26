@@ -13,7 +13,15 @@ export type MockGroup = {
   size_guide?: string;
 };
 
-export type MockVariant = { code: string; size: string | null; color: string | null; price: number; stock: number };
+export type MockVariant = {
+  code: string;
+  size: string | null;
+  color: string | null;
+  price: number;
+  /** Price-list price before a Pricing Rule discount; omit when the item is not on sale. */
+  list_price?: number;
+  stock: number;
+};
 
 export type MockProduct = {
   code: string;
@@ -26,6 +34,7 @@ export type MockProduct = {
   age_range?: string;
   created: string;
   price?: number;
+  list_price?: number;
   stock?: number;
   variants?: MockVariant[];
 };
@@ -128,8 +137,8 @@ export const MOCK_PRODUCTS: MockProduct[] = [
     featured: 1,
     created: "2026-09-22 12:00:00",
     variants: variants("BAG-001", [], [], 0, () => 0).concat([
-      { code: "BAG-001-0", size: null, color: "وردي", price: 135, stock: 4 },
-      { code: "BAG-001-4", size: null, color: "ذهبي", price: 145, stock: 2 },
+      { code: "BAG-001-0", size: null, color: "وردي", price: 108, list_price: 135, stock: 4 },
+      { code: "BAG-001-4", size: null, color: "ذهبي", price: 116, list_price: 145, stock: 2 },
     ]),
   },
   {

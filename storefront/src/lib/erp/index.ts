@@ -7,9 +7,12 @@ import type {
   Category,
   CheckoutInput,
   FeedItem,
+  ImageSearchResult,
   OrderResult,
   ProductList,
   ProductQuery,
+  PaymentStatusResult,
+  PaymentVerification,
   ProductResponse,
   Quote,
   SearchResponse,
@@ -42,6 +45,7 @@ export function getProducts(query: ProductQuery): Promise<ApiResult<ProductList>
       max_price: query.max_price,
       in_stock: query.in_stock ? 1 : undefined,
       featured: query.featured ? 1 : undefined,
+      on_sale: query.on_sale ? 1 : undefined,
       sort: query.sort,
       page: query.page,
       page_size: query.page_size,
@@ -81,7 +85,7 @@ export function getZones(): Promise<ApiResult<Zones>> {
 }
 
 export function quoteCart(
-  body: { items: { item_code: string; qty: number }[]; zone?: string; gift_wrap?: boolean },
+  body: { items: { item_code: string; qty: number }[]; zone?: string; gift_wrap?: boolean; coupon_code?: string },
   clientIp: string,
 ): Promise<ApiResult<Quote>> {
   if (isMock) return mockApi.quote(body);
@@ -100,6 +104,48 @@ export function placeOrder(input: CheckoutInput, clientIp: string): Promise<ApiR
 export function trackOrder(orderNo: string, phone: string, clientIp: string): Promise<ApiResult<TrackResult>> {
   if (isMock) return mockApi.trackOrder(orderNo, phone);
   return callErp("orders.track_order", { method: "POST", body: { order_no: orderNo, phone }, clientIp });
+}
+
+/**
+ * Hand a payment gateway's own response to ERPNext, which verifies its signature before booking
+ * anything. The browser cannot be trusted with the outcome, so the result here is ERPNext's.
+ */
+export function verifyMoamalatPayment(
+  payload: Record<string, unknown>,
+  clientIp: string,
+): Promise<ApiResult<PaymentVerification>> {
+  if (isMock) return mockApi.verifyMoamalatPayment(payload);
+  return callErp("payments.moamalat_callback", { method: "POST", body: { payload }, clientIp });
+}
+
+export function getPaymentStatus(
+  orderNo: string,
+  eventId: string,
+  clientIp: string,
+): Promise<ApiResult<PaymentStatusResult>> {
+  if (isMock) return mockApi.getPaymentStatus(orderNo, eventId);
+  return callErp("payments.payment_status", {
+    method: "POST",
+    body: { order_no: orderNo, event_id: eventId },
+    clientIp,
+  });
+}
+
+/**
+ * Find products that look like an uploaded photo. The image is sent as base64 to ERPNext, encoded
+ * there, and discarded: it is never stored and never leaves the store's own server.
+ */
+export function searchByImage(
+  imageBase64: string,
+  clientIp: string,
+  limit = 12,
+): Promise<ApiResult<ImageSearchResult>> {
+  if (isMock) return mockApi.searchByImage(imageBase64, limit);
+  return callErp("catalog.search_by_image", {
+    method: "POST",
+    body: { image: imageBase64, limit },
+    clientIp,
+  });
 }
 
 export function getMetaFeed(): Promise<ApiResult<{ currency: string; items: FeedItem[] }>> {

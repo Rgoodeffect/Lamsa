@@ -6,11 +6,11 @@ import { useEffect, useMemo, useState } from "react";
 import { trackPixel } from "@/lib/analytics/pixel";
 import { useCart } from "@/lib/cart-store";
 import type { ProductDetail, Variant } from "@/lib/erp/types";
-import { formatPrice, formatPriceRange } from "@/lib/format";
 import { t } from "@/lib/i18n";
 import { whatsappLink } from "@/lib/whatsapp";
 
 import { CashIcon, CheckIcon, WhatsAppIcon } from "../Icons";
+import { Price } from "../Price";
 import { Gallery } from "./Gallery";
 import { SizeGuideButton } from "./SizeGuide";
 
@@ -108,9 +108,19 @@ export function ProductView({ product, currency, whatsapp, productUrl }: Props) 
       <div className="space-y-6">
         <div className="space-y-2">
           <h1 className="font-heading text-3xl font-bold leading-snug">{product.name}</h1>
-          <p className="text-2xl font-semibold text-primary-700" data-testid="product-price">
-            {variant ? formatPrice(variant.price, currency) : formatPriceRange(product.min_price, product.max_price, currency)}
-          </p>
+          <div className="text-2xl" data-testid="product-price">
+            {variant ? (
+              <Price min={variant.price} listMin={variant.list_price} currency={currency} />
+            ) : (
+              <Price
+                min={product.min_price}
+                max={product.max_price}
+                listMin={product.list_min_price}
+                listMax={product.list_max_price}
+                currency={currency}
+              />
+            )}
+          </div>
           <StockBadge status={needsSelection ? null : unavailable ? "out" : (stock?.status ?? null)} left={stock?.left} />
         </div>
 

@@ -90,11 +90,20 @@ class CODSettlement(Document):
 
 @frappe.whitelist()
 def get_unsettled(agent: str) -> list[dict]:
-	"""Delivered orders whose cash this agent still holds (used by the form's Get Orders button)."""
+	"""Delivered orders whose cash this agent still holds (used by the form's Get Orders button).
+
+	Prepaid orders are left out: the agent collected nothing for them, so there is no cash to hand in.
+	"""
 	frappe.has_permission("COD Settlement", "create", throw=True)
 	return frappe.get_all(
 		"Delivery Assignment",
-		filters={"agent": agent, "status": "Delivered", "settled": 0, "sales_invoice": ["is", "set"]},
+		filters={
+			"agent": agent,
+			"status": "Delivered",
+			"settled": 0,
+			"sales_invoice": ["is", "set"],
+			"collected_amount": [">", 0],
+		},
 		fields=["name as assignment", "order_no", "sales_invoice", "customer", "collected_amount as amount"],
 		order_by="status_changed_on asc",
 	)

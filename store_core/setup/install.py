@@ -23,6 +23,29 @@ ROLES = (
 	("Lamsa Delivery Agent", 0),
 )
 
+#: Role Profile assigned to the person who runs the store.
+#:
+#: "Lamsa Store Manager" on its own only covers store_core's own DocTypes (settings, zones, agents,
+#: assignments, settlements). The catalog lives in standard ERPNext DocTypes whose permissions belong
+#: to standard roles, so managing products, prices and offers needs those too:
+#:   Item / Item Group / Item Attribute -> Item Manager
+#:   Item Price                         -> Sales Master Manager
+#:   Pricing Rule                       -> Sales Manager
+#:   Sales Order / Delivery Note        -> Sales User, Stock User
+#:   Payment Entry, invoices            -> Accounts User
+#: Bundling them in a Role Profile keeps store_core from adding Custom DocPerms to core DocTypes,
+#: which would replace their standard permissions for everyone.
+STORE_MANAGER_PROFILE = "Lamsa Store Manager"
+STORE_MANAGER_ROLES = (
+	"Lamsa Store Manager",
+	"Item Manager",
+	"Sales Master Manager",
+	"Sales Manager",
+	"Sales User",
+	"Stock User",
+	"Accounts User",
+)
+
 GIFT_WRAP_ITEM = "LAMSA-GIFT-WRAP"
 DELIVERY_ITEM = "LAMSA-DELIVERY"
 API_USER = "storefront-api@lamsa.local"
@@ -31,11 +54,13 @@ API_USER = "storefront-api@lamsa.local"
 def after_install():
 	apply_custom_fields()
 	create_roles()
+	create_store_manager_profile()
 
 
 def after_migrate():
 	apply_custom_fields()
 	create_roles()
+	create_store_manager_profile()
 
 
 def before_uninstall():
@@ -57,6 +82,28 @@ def create_roles():
 			frappe.get_doc({"doctype": "Role", "role_name": role_name, "desk_access": desk_access}).insert(
 				ignore_permissions=True
 			)
+
+
+def create_store_manager_profile():
+	"""Create/refresh the Role Profile that gives one user everything running the store needs.
+
+	Assign it on the User form (Role Profile field) instead of ticking roles by hand. Only roles that
+	actually exist on the site are included, so it works whether or not every ERPNext module is set up.
+	"""
+	roles = [r for r in STORE_MANAGER_ROLES if frappe.db.exists("Role", r)]
+	if not roles:
+		return
+	if frappe.db.exists("Role Profile", STORE_MANAGER_PROFILE):
+		profile = frappe.get_doc("Role Profile", STORE_MANAGER_PROFILE)
+	else:
+		profile = frappe.new_doc("Role Profile")
+		profile.role_profile = STORE_MANAGER_PROFILE
+	existing = {row.role for row in profile.roles}
+	for role in roles:
+		if role not in existing:
+			profile.append("roles", {"role": role})
+	profile.flags.ignore_permissions = True
+	profile.save()
 
 
 @frappe.whitelist()

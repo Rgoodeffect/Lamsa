@@ -3,6 +3,7 @@
 import frappe
 from frappe.utils import cint, flt
 
+from store_core.providers.embeddings import registry as embedder_registry
 from store_core.providers.payments import registry as payment_registry
 from store_core.services.settings import get_settings
 from store_core.utils.api import storefront_endpoint
@@ -33,6 +34,9 @@ def get_config():
 		},
 		"max_qty_per_line": cint(settings.max_qty_per_line) or 10,
 		"payment_providers": payment_registry.enabled_providers_info(),
+		# Both the setting and the model have to be there, or the storefront would offer a control
+		# that can only fail.
+		"image_search": bool(cint(settings.image_search_enabled)) and embedder_registry.is_available(),
 	}
 
 

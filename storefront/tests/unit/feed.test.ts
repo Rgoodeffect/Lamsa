@@ -11,6 +11,7 @@ const items = [
     availability: "in stock",
     condition: "new",
     price: "250.00 LYD",
+    sale_price: "200.00 LYD",
     slug: "evening-dress",
     image_link: "/files/a.jpg",
     additional_image_link: "/files/b.jpg,/files/c.jpg",
@@ -46,5 +47,21 @@ describe("meta feed", () => {
     expect(xml).toContain("<g:id>DRESS-M-BGE</g:id>");
     expect(xml).toContain("Line2 &amp; &lt;more&gt;");
     expect(xml.match(/<g:additional_image_link>/g)?.length).toBe(2);
+  });
+});
+
+describe("discounted prices", () => {
+  it("keeps the price-list price in `price` and the discount in `sale_price`", () => {
+    const [row] = toFeedRows(items, "https://lamsa.ly", (p) => p ?? null);
+    expect(row.price).toBe("250.00 LYD");
+    expect(row.sale_price).toBe("200.00 LYD");
+    expect(META_COLUMNS).toContain("sale_price");
+  });
+
+  it("omits sale_price entirely when the item is not on sale", () => {
+    const [row] = toFeedRows([{ ...items[0], sale_price: "" }], "https://lamsa.ly", (p) => p ?? null);
+    expect(row.sale_price).toBe("");
+    // an empty column must not become an empty <g:sale_price/> element
+    expect(toRssXml([row], { title: "t", link: "l", description: "d" })).not.toContain("sale_price");
   });
 });

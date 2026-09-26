@@ -11,6 +11,31 @@ msgstr ""
 msgid "Lamsa Store"
 msgstr "متجر لمسة"
 
+# Workspace cards and shortcuts (store owner's desk screen)
+msgid "Today"
+msgstr "اليوم"
+
+msgid "Setup"
+msgstr "الإعداد"
+
+msgid "Orders & Delivery"
+msgstr "الطلبات والتوصيل"
+
+msgid "Catalog"
+msgstr "الكتالوج"
+
+msgid "Prices & Offers"
+msgstr "الأسعار والعروض"
+
+msgid "Store Setup"
+msgstr "إعداد المتجر"
+
+msgid "Money"
+msgstr "المالية"
+
+msgid "New Orders"
+msgstr "الطلبات الجديدة"
+
 msgid "Lamsa Settings"
 msgstr "إعدادات لمسة"
 
@@ -94,6 +119,42 @@ msgstr "المبلغ المحصّل"
 
 msgid "Cash In Hand (unsettled)"
 msgstr "نقد لدى المندوب (غير مسوّى)"
+
+msgid "Payment Status"
+msgstr "حالة الدفع"
+
+msgid "Payment Reference"
+msgstr "مرجع الدفع"
+
+msgid "Online Payment Account"
+msgstr "حساب الدفع الإلكتروني"
+
+msgid "Unpaid"
+msgstr "غير مدفوع"
+
+msgid "Paid"
+msgstr "مدفوع"
+
+msgid "Failed"
+msgstr "فشل"
+
+msgid "Paid online via {0} — nothing to collect on delivery"
+msgstr "مدفوع إلكترونياً عبر {0} — لا يوجد مبلغ للتحصيل عند التسليم"
+
+msgid "Order {0} is already paid"
+msgstr "الطلب {0} مدفوع مسبقاً"
+
+msgid "Paid amount {0} does not match the order total {1}"
+msgstr "المبلغ المدفوع {0} لا يطابق إجمالي الطلب {1}"
+
+msgid "Set an Online Payment Account in Lamsa Settings before enabling online payments"
+msgstr "حدّدي «حساب الدفع الإلكتروني» في إعدادات لمسة قبل تفعيل الدفع الإلكتروني"
+
+msgid "Payment failed ({0}): {1}"
+msgstr "فشل الدفع ({0}): {1}"
+
+msgid "Online payment for store order {0} via {1}"
+msgstr "دفع إلكتروني لطلب المتجر {0} عبر {1}"
 
 msgid "Cannot change status from {0} to {1}"
 msgstr "لا يمكن تغيير الحالة من {0} إلى {1}"

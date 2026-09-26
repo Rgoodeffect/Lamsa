@@ -1,6 +1,7 @@
 // PM2 process file for the storefront (same VPS as ERPNext).
 // Usage (from the storefront folder):  pm2 start ../deploy/ecosystem.config.cjs && pm2 save
-// Keep instances at 1 (fork mode): the first rate-limit layer is in-memory per process.
+// instances stays at 1 (fork mode) unless REDIS_URL is set: without Redis the first rate-limit
+// layer counts per process, so several instances would each allow the full limit.
 module.exports = {
   apps: [
     {

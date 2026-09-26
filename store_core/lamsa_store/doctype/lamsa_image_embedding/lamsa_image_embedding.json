@@ -1,0 +1,90 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "creation": "2026-09-27 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "item_code",
+  "file_url",
+  "model",
+  "dimensions",
+  "vector"
+ ],
+ "fields": [
+  {
+   "fieldname": "item_code",
+   "fieldtype": "Link",
+   "options": "Item",
+   "label": "Item",
+   "reqd": 1,
+   "in_list_view": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "file_url",
+   "fieldtype": "Data",
+   "label": "Image URL",
+   "reqd": 1,
+   "in_list_view": 1,
+   "length": 500,
+   "description": "Site-relative path of the product image this vector describes"
+  },
+  {
+   "fieldname": "model",
+   "fieldtype": "Data",
+   "label": "Model",
+   "in_list_view": 1,
+   "read_only": 1,
+   "description": "Which embedder produced the vector; vectors from different models are never compared"
+  },
+  {
+   "fieldname": "dimensions",
+   "fieldtype": "Int",
+   "label": "Dimensions",
+   "read_only": 1
+  },
+  {
+   "fieldname": "vector",
+   "fieldtype": "Long Text",
+   "label": "Vector",
+   "read_only": 1,
+   "description": "JSON array of floats, already normalised to unit length"
+  }
+ ],
+ "hide_toolbar": 0,
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-09-27 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Lamsa Store",
+ "name": "Lamsa Image Embedding",
+ "owner": "Administrator",
+ "states": [],
+ "autoname": "hash",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1
+  },
+  {
+   "role": "Lamsa Store Manager",
+   "read": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "share": 1
+  }
+ ]
+}

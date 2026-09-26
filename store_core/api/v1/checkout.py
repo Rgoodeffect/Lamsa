@@ -18,6 +18,7 @@ def place_order(
 	gift_wrap: str | int | bool | None = 0,
 	gift_message: str | None = None,
 	payment_provider: str | None = None,
+	coupon_code: str | None = None,
 	source: str | None = None,
 ):
 	return orders.place_order(
@@ -31,6 +32,7 @@ def place_order(
 			"gift_wrap": gift_wrap,
 			"gift_message": gift_message,
 			"payment_provider": payment_provider,
+			"coupon_code": coupon_code,
 			"source": source,
 		}
 	)

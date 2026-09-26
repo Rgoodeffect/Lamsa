@@ -12,12 +12,14 @@ import type { ApiError, Quote } from "./erp/types";
  */
 export function useQuote(options: { zone?: string; giftWrap?: boolean } = {}) {
   const lines = useCart((s) => s.lines);
+  const couponCode = useCart((s) => s.couponCode);
   const [quote, setQuote] = useState<Quote | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [couponError, setCouponError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const controller = useRef<AbortController | null>(null);
 
-  const key = JSON.stringify([lines.map((l) => [l.item_code, l.qty]), options.zone, options.giftWrap]);
+  const key = JSON.stringify([lines.map((l) => [l.item_code, l.qty]), options.zone, options.giftWrap, couponCode]);
 
   useEffect(() => {
     if (!lines.length) return;
@@ -29,12 +31,19 @@ export function useQuote(options: { zone?: string; giftWrap?: boolean } = {}) {
       try {
         const res = await postJson<Quote>(
           "/api/quote",
-          { items: lines.map(({ item_code, qty }) => ({ item_code, qty })), zone: options.zone || undefined, gift_wrap: Boolean(options.giftWrap) },
+          {
+            items: lines.map(({ item_code, qty }) => ({ item_code, qty })),
+            zone: options.zone || undefined,
+            gift_wrap: Boolean(options.giftWrap),
+            coupon_code: couponCode || undefined,
+          },
           ctrl.signal,
         );
         if (res.ok) {
           setQuote(res.data);
           setError(null);
+          // The quote still prices the cart when a coupon is refused; it just says why.
+          setCouponError(res.data.coupon_error ? errorMessage({ code: res.data.coupon_error }) : null);
         } else {
           setError(errorMessage(res.error));
           fixCart(res.error);
@@ -52,7 +61,13 @@ export function useQuote(options: { zone?: string; giftWrap?: boolean } = {}) {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `key` captures lines/options
   }, [key]);
 
-  return { quote: lines.length ? quote : null, error: lines.length ? error : null, loading, lines };
+  return {
+    quote: lines.length ? quote : null,
+    error: lines.length ? error : null,
+    couponError: lines.length ? couponError : null,
+    loading,
+    lines,
+  };
 }
 
 /** Apply the server's stock/availability verdict to the local cart. */

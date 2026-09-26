@@ -26,6 +26,7 @@ def get_products(
 	max_price: str | float | None = None,
 	in_stock: str | int | bool | None = None,
 	featured: str | int | bool | None = None,
+	on_sale: str | int | bool | None = None,
 	sort: str | None = None,
 	page: str | int | None = 1,
 	page_size: str | int | None = 24,
@@ -37,7 +38,7 @@ def get_products(
 		if not group:
 			raise CheckoutError("category_not_found")
 
-	scoped = catalog.filter_products(index, category=category)
+	scoped = catalog.filter_products(index, category=category, on_sale=bool(cint(on_sale)))
 	products = catalog.filter_products(
 		index,
 		category=category,
@@ -48,6 +49,7 @@ def get_products(
 		max_price=flt(max_price) if max_price not in (None, "") else None,
 		in_stock=bool(cint(in_stock)),
 		featured=bool(cint(featured)),
+		on_sale=bool(cint(on_sale)),
 	)
 	products = catalog.sort_products(products, sort if sort in catalog.SORTS else "featured")
 	page_items, pagination = catalog.paginate(products, page, page_size)
@@ -82,6 +84,7 @@ def get_product(slug: str):
 			"color": v["color"],
 			"attributes": v["attributes"],
 			"price": v["price"],
+			"list_price": v["list_price"],
 			"image": v["image"],
 			"stock": catalog.low_stock_label(v["available"]),
 		}
@@ -100,6 +103,9 @@ def get_product(slug: str):
 			"images": p["images"],
 			"min_price": p["min_price"],
 			"max_price": p["max_price"],
+			"list_min_price": p["list_min_price"],
+			"list_max_price": p["list_max_price"],
+			"on_sale": p["on_sale"],
 			"in_stock": p["in_stock"],
 			"has_variants": p["has_variants"],
 			"stock": None if p["has_variants"] else catalog.low_stock_label(p["available"]),
@@ -128,6 +134,38 @@ def search(q: str, page: str | int | None = 1, page_size: str | int | None = 24)
 		"products": [catalog.product_card(p) for p in page_items],
 		"pagination": pagination,
 	}
+
+
+@frappe.whitelist(methods=["POST"])
+@storefront_endpoint(rate_limit=(20, 300))
+def search_by_image(image: str, limit: str | int | None = 12):
+	"""Products that look like an uploaded photo. `image` is base64 (a data: URL is accepted).
+
+	Rate limited harder than text search: encoding an image costs real CPU on the same box as ERPNext.
+	The photo is used for this call only and never stored.
+	"""
+	from store_core.services import image_search
+
+	settings = frappe.get_cached_doc("Lamsa Settings")
+	if not cint(settings.image_search_enabled):
+		raise CheckoutError("image_search_unavailable")
+	return image_search.search(_decode_image(image), limit=cint(limit) or 12)
+
+
+def _decode_image(value: str) -> bytes:
+	import base64
+	import binascii
+
+	raw = str(value or "")
+	if raw.startswith("data:"):
+		_header, _sep, raw = raw.partition(",")
+	# 4/3 of the byte cap, plus slack for padding and newlines
+	if len(raw) > 12 * 1024 * 1024:
+		raise CheckoutError("image_too_large")
+	try:
+		return base64.b64decode(raw, validate=True)
+	except (binascii.Error, ValueError):
+		raise CheckoutError("image_unreadable")
 
 
 @frappe.whitelist(methods=["GET"])
