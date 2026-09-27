@@ -103,15 +103,33 @@ def _ensure_size_attribute(sizes: list[str], log):
 		return
 	attr = frappe.get_doc("Item Attribute", SIZE_ATTRIBUTE)
 	present = {row.attribute_value for row in attr.item_attribute_values}
+	# ERPNext requires every abbreviation on the attribute to be unique, so track the ones already
+	# used (by this run and by an earlier partial run) and disambiguate a clash instead of failing.
+	used_abbrs = {(row.abbr or "").upper() for row in attr.item_attribute_values}
 	changed = False
 	for size in sizes:
-		if size not in present:
-			attr.append("item_attribute_values", {"attribute_value": size, "abbr": _abbr(size)})
-			changed = True
-			log.act("add value", "Item Attribute", f"{SIZE_ATTRIBUTE}: {size}")
+		if size in present:
+			continue
+		abbr = _unique_abbr(size, used_abbrs)
+		used_abbrs.add(abbr)
+		attr.append("item_attribute_values", {"attribute_value": size, "abbr": abbr})
+		changed = True
+		log.act("add value", "Item Attribute", f"{SIZE_ATTRIBUTE}: {size} ({abbr})")
 	if changed:
 		attr.flags.ignore_permissions = True
 		attr.save()
+
+
+def _unique_abbr(size: str, used: set[str]) -> str:
+	"""A short code for a size, guaranteed not to collide with one already on the attribute."""
+	base = _abbr(size)
+	if base not in used:
+		return base
+	for n in range(2, 100):
+		candidate = f"{base[:5]}{n}"
+		if candidate not in used:
+			return candidate
+	return base  # give up gracefully; ERPNext will raise a clear error if it truly cannot fit
 
 
 def _upsert_category(category: dict, log):
