@@ -88,6 +88,8 @@ export type ProductDetail = {
   slug: string;
   name: string;
   description: string;
+  /** One line shown under the product name; empty when the item has none. */
+  short_description: string;
   seo_title?: string | null;
   seo_description?: string | null;
   brand?: string | null;

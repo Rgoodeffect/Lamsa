@@ -108,6 +108,7 @@ export function ProductView({ product, currency, whatsapp, productUrl }: Props) 
       <div className="space-y-6">
         <div className="space-y-2">
           <h1 className="font-heading text-3xl font-bold leading-snug">{product.name}</h1>
+          {product.short_description ? <p className="text-muted">{product.short_description}</p> : null}
           <div className="text-2xl" data-testid="product-price">
             {variant ? (
               <Price min={variant.price} listMin={variant.list_price} currency={currency} />

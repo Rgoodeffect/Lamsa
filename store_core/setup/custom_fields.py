@@ -75,12 +75,52 @@ CUSTOM_FIELDS: dict[str, list[dict]] = {
 			},
 			{"fieldname": "lamsa_sec1", "fieldtype": "Section Break", "label": "Store Content"},
 			{
+				"fieldname": "lamsa_name_en",
+				"fieldtype": "Data",
+				"label": "English Name",
+				"description": "For suppliers, invoices and search; the customer always sees item_name",
+			},
+			{
+				"fieldname": "lamsa_short_description_ar",
+				"fieldtype": "Small Text",
+				"label": "Short Description (Arabic)",
+				"description": "One line for product cards and listings",
+			},
+			{
 				"fieldname": "lamsa_description_ar",
 				"fieldtype": "Text Editor",
 				"label": "Store Description (Arabic)",
 			},
 			{"fieldname": "lamsa_seo_title", "fieldtype": "Data", "label": "SEO Title"},
 			{"fieldname": "lamsa_seo_description", "fieldtype": "Small Text", "label": "SEO Description"},
+			# --- internal, never customer-facing -------------------------------------------------
+			# permlevel 1 keeps these out of reach of any role without level-1 access on Item, which
+			# the storefront API user does not have (it has no Item permission at all). The storefront
+			# endpoints also list their response fields explicitly and never include these, so the
+			# purchase cost and supplier link cannot leak through the public API.
+			{
+				"fieldname": "lamsa_internal_sec",
+				"fieldtype": "Section Break",
+				"label": "Internal (not shown to customers)",
+				"permlevel": 1,
+			},
+			{
+				"fieldname": "lamsa_cost_usd",
+				"fieldtype": "Float",
+				"label": "Purchase Cost (USD)",
+				"precision": "2",
+				"permlevel": 1,
+				"description": "What the item costs us, in US dollars. Not valuation_rate, which ERPNext keeps in the company currency (LYD)",
+			},
+			{
+				"fieldname": "lamsa_supplier_url",
+				"fieldtype": "Data",
+				"label": "Supplier URL",
+				"options": "URL",
+				"permlevel": 1,
+				"length": 500,
+				"description": "Where this item was sourced; internal reference only",
+			},
 		]
 	),
 	"Item Group": _chain(

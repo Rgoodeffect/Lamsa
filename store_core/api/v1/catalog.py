@@ -97,6 +97,7 @@ def get_product(slug: str):
 			"slug": p["slug"],
 			"name": p["name"],
 			"description": p["description"],
+			"short_description": p["short_description"],
 			"seo_title": p["seo_title"],
 			"seo_description": p["seo_description"],
 			"brand": p["brand"],

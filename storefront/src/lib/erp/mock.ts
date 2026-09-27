@@ -305,6 +305,7 @@ export const mockApi = {
         slug: p.slug,
         name: p.name,
         description: p.description,
+        short_description: "",
         images: p.images,
         min_price: c.min_price,
         max_price: c.max_price,
