@@ -64,9 +64,11 @@ def run(dry_run: bool = False, seed_file: str | None = None, company: str | None
 	for price in plan["prices"]:
 		_upsert_price(price, price_list, log)
 
-	# 5. stock, as an opening balance in the store warehouse
+	# 5. stock, as an opening balance in the store warehouse — only for stock items. A bundle carries
+	#    a stock number in the seed file for reference, but ERPNext stocks its components, not the
+	#    package, so setting a balance on it would be refused ("not a stock Item").
 	for item in plan["items"]:
-		if item.get("stock") is not None:
+		if item.get("stock") is not None and item.get("is_stock_item", 1):
 			_set_opening_stock(item["item_code"], flt(item["stock"]), company, warehouse, log)
 
 	# 6. product bundles
