@@ -174,3 +174,43 @@ class TestTheRealSeedFile(unittest.TestCase):
 	def test_the_gift_box_stock_conflict_is_reported(self):
 		plan = sp.build_plan(sp.load(SEED_FILE))
 		self.assertTrue(any("LAM-GIFT-001" in w for w in plan["warnings"]))
+
+
+class TestImageOrdering(unittest.TestCase):
+	"""find_images decides which photo becomes a product's main image; it is pure and testable."""
+
+	def setUp(self):
+		import tempfile
+		self.dir = tempfile.mkdtemp()
+
+	def _touch(self, *names):
+		import os
+		for n in names:
+			open(os.path.join(self.dir, n), "w").close()
+
+	def _base(self, paths):
+		import os
+		return [os.path.basename(p) for p in paths]
+
+	def test_empty_folder_has_no_images(self):
+		from store_core.setup import seed_images as si
+		self.assertEqual(si.find_images(self.dir), [])
+
+	def test_missing_folder_is_safe(self):
+		from store_core.setup import seed_images as si
+		self.assertEqual(si.find_images("/no/such/folder/xyz"), [])
+
+	def test_main_comes_first_then_numbered(self):
+		from store_core.setup import seed_images as si
+		self._touch("2.jpg", "main.jpg", "3.png")
+		self.assertEqual(self._base(si.find_images(self.dir)), ["main.jpg", "2.jpg", "3.png"])
+
+	def test_a_real_photo_wins_over_the_placeholder(self):
+		from store_core.setup import seed_images as si
+		self._touch("main.jpg", "placeholder.png")
+		self.assertEqual(self._base(si.find_images(self.dir)), ["main.jpg"])
+
+	def test_placeholder_is_used_only_when_alone(self):
+		from store_core.setup import seed_images as si
+		self._touch("placeholder.png")
+		self.assertEqual(self._base(si.find_images(self.dir)), ["placeholder.png"])
