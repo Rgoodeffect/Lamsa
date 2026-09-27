@@ -256,26 +256,31 @@ def _upsert_price(price: dict, price_list: str, log):
 
 
 def _set_opening_stock(code: str, qty: float, company: str, warehouse: str, log):
-	"""Set the warehouse balance to `qty` via a Stock Reconciliation. Idempotent: it targets an
-	absolute quantity, so re-running does not stack the stock up."""
+	"""Bring the warehouse balance up to `qty` with a Material Receipt Stock Entry.
+
+	A Stock Entry (Material Receipt) posts stock without an opening-entry difference account, which a
+	Stock Reconciliation "Opening Stock" would demand. It is additive, so to stay idempotent we only
+	receive the shortfall (target − current) and skip entirely once the target is reached: re-running
+	the import never stacks quantities up.
+	"""
 	current = flt(frappe.db.get_value("Bin", {"item_code": code, "warehouse": warehouse}, "actual_qty"))
-	if abs(current - qty) < 0.001:
-		return  # already at the target
-	log.act("stock", "Item", f"{code}: {current} -> {qty} @ {warehouse}")
+	shortfall = flt(qty) - current
+	if shortfall <= 0.001:
+		return  # already at or above the target
+	log.act("stock", "Item", f"{code}: {current} -> {qty} @ {warehouse} (+{shortfall})")
 	if log.dry_run:
 		return
 	rate = flt(frappe.db.get_value("Item Price", {"item_code": code, "selling": 1}, "price_list_rate"))
-	recon = frappe.new_doc("Stock Reconciliation")
-	recon.company = company
-	recon.purpose = "Stock Reconciliation"
-	recon.append(
+	entry = frappe.new_doc("Stock Entry")
+	entry.company = company
+	entry.stock_entry_type = "Material Receipt"
+	entry.append(
 		"items",
-		{"item_code": code, "warehouse": warehouse, "qty": qty, "valuation_rate": rate or 1},
+		{"item_code": code, "t_warehouse": warehouse, "qty": shortfall, "basic_rate": rate or 1},
 	)
-	recon.flags.ignore_permissions = True
-	recon.flags.ignore_mandatory = True
-	recon.save()
-	recon.submit()
+	entry.flags.ignore_permissions = True
+	entry.save()
+	entry.submit()
 
 
 def _upsert_bundle(bundle: dict, log):
